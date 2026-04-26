@@ -1,3 +1,10 @@
+/*
+ * File: boot_shared.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements shared RAM state initialization, access, and reset helpers.
+ */
+
 #include "boot_shared.h"
 
 #include "boot_config.h"

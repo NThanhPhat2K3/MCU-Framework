@@ -1,3 +1,10 @@
+/*
+ * File: app_update.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements the application request path back into the Programmer image.
+ */
+
 #include "app_update.h"
 
 #include "boot_shared.h"

@@ -1,3 +1,10 @@
+/*
+ * File: main.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Entry point for the BootManager image that selects App or Programmer.
+ */
+
 #include "boot_config.h"
 #include "boot_jump.h"
 #include "boot_shared.h"

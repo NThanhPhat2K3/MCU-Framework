@@ -1,4 +1,11 @@
 /*
+ * File: sections_common.ld
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Provides the common GNU ld section layout shared by all firmware images.
+ */
+
+/*
  * Common GNU ld section layout for portable_boot_example.
  *
  * This file is intentionally split from per-image MEMORY maps so that:

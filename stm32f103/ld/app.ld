@@ -1,4 +1,11 @@
 /*
+ * File: app.ld
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Defines the STM32F103 memory map for the application image.
+ */
+
+/*
  * STM32F103 App memory map.
  * Common section layout is shared from sections_common.ld.
  */

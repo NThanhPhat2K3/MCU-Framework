@@ -1,4 +1,11 @@
 /*
+ * File: programmer.ld
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Defines the STM32F103 memory map for the Programmer image.
+ */
+
+/*
  * STM32F103 Programmer memory map.
  * Common section layout is shared from sections_common.ld.
  */

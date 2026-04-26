@@ -1,1 +1,6 @@
+# File: config.mk.example
+# Author: Phat Nguyen
+# Date: 2026-04-26
+# Description: Example local build configuration pointing to the STM32CubeF1 package.
+
 STM32CUBE_F1_DIR := /absolute/path/to/STM32Cube_FW_F1

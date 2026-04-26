@@ -1,3 +1,10 @@
+/*
+ * File: app_main.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Provides a simple STM32F103 application used to validate the boot flow.
+ */
+
 #include "app_update.h"
 
 #include "boot_config.h"

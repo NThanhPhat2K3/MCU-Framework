@@ -1,3 +1,10 @@
+/*
+ * File: startup_portable_cortexm.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements portable Cortex-M reset flow, data copy, and BSS initialization.
+ */
+
 #include "startup_portable_cortexm.h"
 
 void startup_copy_data_init(void)

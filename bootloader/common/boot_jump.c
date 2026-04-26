@@ -1,3 +1,10 @@
+/*
+ * File: boot_jump.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements minimal image validation and jump-to-image runtime handover.
+ */
+
 #include "boot_jump.h"
 
 #include "port_system.h"

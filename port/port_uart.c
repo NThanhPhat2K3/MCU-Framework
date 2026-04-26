@@ -1,3 +1,10 @@
+/*
+ * File: port_uart.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements a minimal STM32F103 USART1 transport layer for update traffic.
+ */
+
 #include "port_uart.h"
 
 #include "stm32f1xx_hal.h"

@@ -1,3 +1,10 @@
+/*
+ * File: port_system.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements STM32 system startup, reset, address validation, and image handover support.
+ */
+
 #include "port_system.h"
 
 #include "boot_config.h"

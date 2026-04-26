@@ -1,3 +1,10 @@
+/*
+ * File: main.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Entry point for the Programmer image that receives and writes App data.
+ */
+
 #include "boot_config.h"
 #include "boot_jump.h"
 #include "boot_proto.h"

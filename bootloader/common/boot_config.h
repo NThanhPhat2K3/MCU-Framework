@@ -1,3 +1,10 @@
+/*
+ * File: boot_config.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Defines flash layout constants and shared boot configuration values.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_BOOT_CONFIG_H
 #define PORTABLE_BOOT_EXAMPLE_BOOT_CONFIG_H
 

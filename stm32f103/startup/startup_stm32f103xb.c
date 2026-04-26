@@ -1,3 +1,10 @@
+/*
+ * File: startup_stm32f103xb.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Defines the STM32F103 vector table and default interrupt handlers.
+ */
+
 #include "startup_portable_cortexm.h"
 
 void NMI_Handler(void) __attribute__((weak, alias("Default_Handler")));

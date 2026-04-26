@@ -1,3 +1,10 @@
+/*
+ * File: boot_jump.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares image validation and image handover interfaces for boot transitions.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_BOOT_JUMP_H
 #define PORTABLE_BOOT_EXAMPLE_BOOT_JUMP_H
 

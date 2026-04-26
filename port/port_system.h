@@ -1,3 +1,10 @@
+/*
+ * File: port_system.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares MCU-specific system init, address checks, reset, and jump helpers.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_PORT_SYSTEM_H
 #define PORTABLE_BOOT_EXAMPLE_PORT_SYSTEM_H
 

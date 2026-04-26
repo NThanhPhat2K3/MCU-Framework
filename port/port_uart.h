@@ -1,3 +1,10 @@
+/*
+ * File: port_uart.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares the MCU-specific UART abstraction used by the programmer transport.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_PORT_UART_H
 #define PORTABLE_BOOT_EXAMPLE_PORT_UART_H
 

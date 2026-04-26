@@ -1,3 +1,10 @@
+/*
+ * File: boot_proto.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements a simple UART packet encoder and decoder for firmware updates.
+ */
+
 #include "boot_proto.h"
 
 #include "port_uart.h"

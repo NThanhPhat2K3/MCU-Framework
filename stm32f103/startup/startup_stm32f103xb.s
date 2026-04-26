@@ -177,3 +177,9 @@ g_pfnVectors:
   .word EXTI15_10_IRQHandler
   .word RTC_Alarm_IRQHandler
   .word USBWakeUp_IRQHandler
+/*
+ * File: startup_stm32f103xb.s
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Keeps the STM32F103 assembly startup reference alongside the C startup version.
+ */

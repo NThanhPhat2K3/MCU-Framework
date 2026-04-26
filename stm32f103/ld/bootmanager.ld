@@ -1,4 +1,11 @@
 /*
+ * File: bootmanager.ld
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Defines the STM32F103 memory map for the BootManager image.
+ */
+
+/*
  * STM32F103 BootManager memory map.
  * Common section layout is shared from sections_common.ld.
  */

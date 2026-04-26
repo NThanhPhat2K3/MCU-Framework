@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+File: send_image.py
+Author: Phat Nguyen
+Date: 2026-04-26
+Description: Sends an application binary to the Programmer image over UART.
+"""
+
 import argparse
 import struct
 import time

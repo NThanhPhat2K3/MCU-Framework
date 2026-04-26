@@ -102,6 +102,7 @@ Muc tieu cua thu muc nay:
 - Da tach linker thanh `linker common` + memory map tung image
 - Da co app test don gian cho STM32F103
 - Da co script Python gui image qua UART cho `Programmer`
+- Da them header comment thong nhat cho code/config/linker/build files
 - Da refactor API theo huong framework hon bang `boot_status_t`
 - Da them tai lieu:
   - `ARCHITECTURE.md`

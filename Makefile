@@ -1,3 +1,8 @@
+# File: Makefile
+# Author: Phat Nguyen
+# Date: 2026-04-26
+# Description: Builds BootManager, Programmer, and App images without IDE dependency.
+
 PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 -include $(PROJECT_ROOT)/make/config.mk

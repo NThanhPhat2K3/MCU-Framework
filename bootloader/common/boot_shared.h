@@ -1,3 +1,10 @@
+/*
+ * File: boot_shared.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares the shared RAM boot state interface used across boot stages.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_BOOT_SHARED_H
 #define PORTABLE_BOOT_EXAMPLE_BOOT_SHARED_H
 

@@ -1,3 +1,10 @@
+/*
+ * File: port_flash.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Implements STM32F1 page erase and halfword programming for the App region.
+ */
+
 #include "port_flash.h"
 
 #include "boot_config.h"

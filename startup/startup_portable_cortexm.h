@@ -1,3 +1,10 @@
+/*
+ * File: startup_portable_cortexm.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares portable Cortex-M startup symbols and reset flow entry points.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_STARTUP_PORTABLE_CORTEXM_H
 #define PORTABLE_BOOT_EXAMPLE_STARTUP_PORTABLE_CORTEXM_H
 

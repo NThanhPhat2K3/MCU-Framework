@@ -1,3 +1,10 @@
+/*
+ * File: stm32f1xx_hal_conf.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Provides the minimal HAL feature configuration required by the STM32F103 example.
+ */
+
 #ifndef STM32F1XX_HAL_CONF_H
 #define STM32F1XX_HAL_CONF_H
 

@@ -1,3 +1,10 @@
+/*
+ * File: boot_types.h
+ * Author: Phat Nguyen
+ * Date: 2026-04-26
+ * Description: Declares shared bootloader enums, status codes, and protocol data types.
+ */
+
 #ifndef PORTABLE_BOOT_EXAMPLE_BOOT_TYPES_H
 #define PORTABLE_BOOT_EXAMPLE_BOOT_TYPES_H
 
