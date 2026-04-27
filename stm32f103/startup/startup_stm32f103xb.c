@@ -2,68 +2,77 @@
  * File: startup_stm32f103xb.c
  * Author: Phat Nguyen
  * Date: 2026-04-26
- * Description: Defines the STM32F103 vector table and default interrupt handlers.
+ * Description: Defines the STM32F103 vector table and default interrupt
+ * handlers.
  */
 
 #include "startup_portable_cortexm.h"
 
-void NMI_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void HardFault_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void MemManage_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void BusFault_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void UsageFault_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void SVC_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void DebugMon_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void PendSV_Handler(void) __attribute__((weak, alias("Default_Handler")));
-void SysTick_Handler(void) __attribute__((weak, alias("Default_Handler")));
+#define STM32F103_WEAK_HANDLER(name)                                           \
+  /* define prototype and weak alias for the handler */                        \
+  void name(void) __attribute__((weak));                                       \
+  /* define the handler function */                                            \
+  void name(void) { Default_Handler(); }
 
-void WWDG_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void PVD_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TAMPER_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void RTC_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void FLASH_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void RCC_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI0_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI3_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI4_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel3_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel4_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel5_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel6_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void DMA1_Channel7_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void ADC1_2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USB_HP_CAN1_TX_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USB_LP_CAN1_RX0_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void CAN1_RX1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void CAN1_SCE_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI9_5_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM1_BRK_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM1_UP_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM1_TRG_COM_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM1_CC_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM3_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void TIM4_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void I2C1_EV_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void I2C1_ER_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void I2C2_EV_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void I2C2_ER_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void SPI1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void SPI2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USART1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USART2_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USART3_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void EXTI15_10_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void RTC_Alarm_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
-void USBWakeUp_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
+typedef void (*stm32f103_isr_handler_t)(void);
+
+STM32F103_WEAK_HANDLER(NMI_Handler)
+STM32F103_WEAK_HANDLER(HardFault_Handler)
+STM32F103_WEAK_HANDLER(MemManage_Handler)
+STM32F103_WEAK_HANDLER(BusFault_Handler)
+STM32F103_WEAK_HANDLER(UsageFault_Handler)
+STM32F103_WEAK_HANDLER(SVC_Handler)
+STM32F103_WEAK_HANDLER(DebugMon_Handler)
+STM32F103_WEAK_HANDLER(PendSV_Handler)
+STM32F103_WEAK_HANDLER(SysTick_Handler)
+
+STM32F103_WEAK_HANDLER(WWDG_IRQHandler)
+STM32F103_WEAK_HANDLER(PVD_IRQHandler)
+STM32F103_WEAK_HANDLER(TAMPER_IRQHandler)
+STM32F103_WEAK_HANDLER(RTC_IRQHandler)
+STM32F103_WEAK_HANDLER(FLASH_IRQHandler)
+STM32F103_WEAK_HANDLER(RCC_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI0_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI1_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI2_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI3_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI4_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel1_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel2_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel3_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel4_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel5_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel6_IRQHandler)
+STM32F103_WEAK_HANDLER(DMA1_Channel7_IRQHandler)
+STM32F103_WEAK_HANDLER(ADC1_2_IRQHandler)
+STM32F103_WEAK_HANDLER(USB_HP_CAN1_TX_IRQHandler)
+STM32F103_WEAK_HANDLER(USB_LP_CAN1_RX0_IRQHandler)
+STM32F103_WEAK_HANDLER(CAN1_RX1_IRQHandler)
+STM32F103_WEAK_HANDLER(CAN1_SCE_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI9_5_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM1_BRK_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM1_UP_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM1_TRG_COM_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM1_CC_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM2_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM3_IRQHandler)
+STM32F103_WEAK_HANDLER(TIM4_IRQHandler)
+STM32F103_WEAK_HANDLER(I2C1_EV_IRQHandler)
+STM32F103_WEAK_HANDLER(I2C1_ER_IRQHandler)
+STM32F103_WEAK_HANDLER(I2C2_EV_IRQHandler)
+STM32F103_WEAK_HANDLER(I2C2_ER_IRQHandler)
+STM32F103_WEAK_HANDLER(SPI1_IRQHandler)
+STM32F103_WEAK_HANDLER(SPI2_IRQHandler)
+STM32F103_WEAK_HANDLER(USART1_IRQHandler)
+STM32F103_WEAK_HANDLER(USART2_IRQHandler)
+STM32F103_WEAK_HANDLER(USART3_IRQHandler)
+STM32F103_WEAK_HANDLER(EXTI15_10_IRQHandler)
+STM32F103_WEAK_HANDLER(RTC_Alarm_IRQHandler)
+STM32F103_WEAK_HANDLER(USBWakeUp_IRQHandler)
 
 __attribute__((section(".isr_vector")))
-const void *g_pfnVectors[] = {
-    &_estack,
+const stm32f103_isr_handler_t g_pfnVectors[] = {
+    (stm32f103_isr_handler_t)&_estack,
     Reset_Handler,
     NMI_Handler,
     HardFault_Handler,

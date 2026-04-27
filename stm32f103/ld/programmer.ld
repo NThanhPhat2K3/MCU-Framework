@@ -10,8 +10,8 @@
  * Common section layout is shared from sections_common.ld.
  */
 
-#define PORTABLE_HEAP_SIZE 0x400
-#define PORTABLE_STACK_RESERVE_SIZE 0x200
+PORTABLE_HEAP_SIZE = 0x400;
+PORTABLE_STACK_RESERVE_SIZE = 0x200;
 
 MEMORY
 {
@@ -20,4 +20,4 @@ MEMORY
   NOINIT (xrw) : ORIGIN = 0x20004FE0, LENGTH = 32
 }
 
-INCLUDE ../../linker/gnu/sections_common.ld
+INCLUDE linker/gnu/sections_common.ld

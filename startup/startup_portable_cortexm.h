@@ -18,6 +18,13 @@
  *    external interrupt lists differ across chips.
  * 3. Linker scripts must export:
  *      _estack, _sidata, _sdata, _edata, _sbss, _ebss
+ * 4. startup_low_level_init() runs before .data copy and .bss clear.
+ *    It must not rely on initialized global variables or zeroed BSS.
+ * 5. SystemInit() is called after .data/.bss initialization by the generic
+ *    reset flow. Targets that need earlier chip-specific work should override
+ *    startup_low_level_init() and keep that hook RAM-init safe.
+ * 6. Generic startup does not enforce a global IRQ disable policy.
+ *    Targets that need strict interrupt control must handle it explicitly.
  */
 
 extern uint32_t _estack;
@@ -31,6 +38,7 @@ void SystemInit(void);
 void __libc_init_array(void);
 int main(void);
 
+void startup_low_level_init(void);
 void startup_copy_data_init(void);
 void startup_zero_bss(void);
 void startup_run(void);

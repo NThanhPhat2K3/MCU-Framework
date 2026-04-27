@@ -55,6 +55,36 @@ SECTIONS
     . = ALIGN(4);
   } > FLASH
 
+  .preinit_array :
+  {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN(__preinit_array_start = .);
+    KEEP(*(.preinit_array))
+    KEEP(*(SORT(.preinit_array.*)))
+    PROVIDE_HIDDEN(__preinit_array_end = .);
+    . = ALIGN(4);
+  } > FLASH
+
+  .init_array :
+  {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN(__init_array_start = .);
+    KEEP(*(SORT(.init_array.*)))
+    KEEP(*(.init_array))
+    PROVIDE_HIDDEN(__init_array_end = .);
+    . = ALIGN(4);
+  } > FLASH
+
+  .fini_array :
+  {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN(__fini_array_start = .);
+    KEEP(*(.fini_array))
+    KEEP(*(SORT(.fini_array.*)))
+    PROVIDE_HIDDEN(__fini_array_end = .);
+    . = ALIGN(4);
+  } > FLASH
+
   .ARM.extab :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
@@ -75,6 +105,8 @@ SECTIONS
     _sdata = .;
     *(.data)
     *(.data*)
+    *(.ramfunc)
+    *(.ramfunc*)
     . = ALIGN(4);
     _edata = .;
   } > RAM AT > FLASH
@@ -103,13 +135,20 @@ SECTIONS
     . = ALIGN(8);
     PROVIDE(end = .);
     PROVIDE(_end = .);
+    PROVIDE(__HeapBase = .);
     . = . + PORTABLE_HEAP_SIZE;
+    PROVIDE(__HeapLimit = .);
+    PROVIDE(__StackLimit = .);
     . = . + PORTABLE_STACK_RESERVE_SIZE;
     . = ALIGN(8);
+    PROVIDE(__StackTop = _estack);
   } > RAM
 
   .ARM.attributes 0 :
   {
     *(.ARM.attributes)
   }
+
+  ASSERT((LOADADDR(.data) + SIZEOF(.data)) <= (ORIGIN(FLASH) + LENGTH(FLASH)), "FLASH overflow: image does not fit in FLASH region")
+  ASSERT((ADDR(._user_heap_stack) + SIZEOF(._user_heap_stack)) <= (ORIGIN(RAM) + LENGTH(RAM)), "RAM overflow: data/bss/heap/stack reserve do not fit in RAM region")
 }
