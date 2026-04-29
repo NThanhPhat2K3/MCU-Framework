@@ -1,15 +1,14 @@
 /*
  * File: port_system.c
  * Author: Phat Nguyen
- * Date: 2026-04-26
+ * Date: 2026-04-29
  * Description: Implements STM32 system startup, reset, address validation, and image handover support.
  */
 
 #include "port_system.h"
 
 #include "boot_config.h"
-
-#include "stm32f1xx_hal.h"
+#include "port_hal.h"
 
 static void port_system_clock_init(void)
 {
@@ -35,6 +34,11 @@ void port_system_init(void)
 {
     HAL_Init();
     port_system_clock_init();
+}
+
+void SysTick_Handler(void)
+{
+    HAL_IncTick();
 }
 
 void port_system_reset(void)

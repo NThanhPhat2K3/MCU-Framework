@@ -1,13 +1,13 @@
 /*
  * File: port_uart.c
  * Author: Phat Nguyen
- * Date: 2026-04-26
- * Description: Implements a minimal STM32F103 USART1 transport layer for update traffic.
+ * Date: 2026-04-29
+ * Description: Implements a minimal STM32 USART1 transport layer for update traffic.
  */
 
 #include "port_uart.h"
 
-#include "stm32f1xx_hal.h"
+#include "port_hal.h"
 
 static UART_HandleTypeDef huart1;
 
@@ -19,13 +19,27 @@ void port_uart_init(void)
     __HAL_RCC_USART1_CLK_ENABLE();
 
     gpio.Pin = GPIO_PIN_9;
+#if defined(STM32F103xB)
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Speed = GPIO_SPEED_FREQ_HIGH;
+#elif defined(STM32F411xE)
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Pull = GPIO_PULLUP;
+    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio.Alternate = GPIO_AF7_USART1;
+#endif
     HAL_GPIO_Init(GPIOA, &gpio);
 
     gpio.Pin = GPIO_PIN_10;
+#if defined(STM32F103xB)
     gpio.Mode = GPIO_MODE_INPUT;
     gpio.Pull = GPIO_NOPULL;
+#elif defined(STM32F411xE)
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Pull = GPIO_PULLUP;
+    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio.Alternate = GPIO_AF7_USART1;
+#endif
     HAL_GPIO_Init(GPIOA, &gpio);
 
     huart1.Instance = USART1;

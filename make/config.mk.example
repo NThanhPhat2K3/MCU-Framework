@@ -1,6 +1,7 @@
 # File: config.mk.example
 # Author: Phat Nguyen
-# Date: 2026-04-26
-# Description: Example local build configuration pointing to the STM32CubeF1 package.
+# Date: 2026-04-29
+# Description: Example local build configuration pointing to STM32Cube packages stored inside vendor/.
 
-STM32CUBE_F1_DIR := /absolute/path/to/STM32Cube_FW_F1
+STM32CUBE_F1_DIR := /mnt/hdd1/project/MCU-Framework/vendor/STM32CubeF1
+STM32CUBE_F4_DIR := /mnt/hdd1/project/MCU-Framework/vendor/STM32CubeF4

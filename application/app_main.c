@@ -1,15 +1,14 @@
 /*
  * File: app_main.c
  * Author: Phat Nguyen
- * Date: 2026-04-26
- * Description: Provides a simple STM32F103 application used to validate the boot flow.
+ * Date: 2026-04-29
+ * Description: Provides a simple STM32 application used to validate the boot flow.
  */
 
 #include "app_update.h"
 
 #include "boot_config.h"
-
-#include "stm32f1xx_hal.h"
+#include "port_hal.h"
 
 static UART_HandleTypeDef huart1;
 
@@ -41,7 +40,12 @@ static void app_gpio_init(void)
 
     gpio.Pin = GPIO_PIN_13;
     gpio.Mode = GPIO_MODE_OUTPUT_PP;
+#if defined(STM32F103xB)
     gpio.Speed = GPIO_SPEED_FREQ_LOW;
+#elif defined(STM32F411xE)
+    gpio.Pull = GPIO_NOPULL;
+    gpio.Speed = GPIO_SPEED_FREQ_LOW;
+#endif
     HAL_GPIO_Init(GPIOC, &gpio);
 }
 
@@ -53,13 +57,27 @@ static void app_uart_init(void)
     __HAL_RCC_USART1_CLK_ENABLE();
 
     gpio.Pin = GPIO_PIN_9;
+#if defined(STM32F103xB)
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Speed = GPIO_SPEED_FREQ_HIGH;
+#elif defined(STM32F411xE)
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Pull = GPIO_PULLUP;
+    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio.Alternate = GPIO_AF7_USART1;
+#endif
     HAL_GPIO_Init(GPIOA, &gpio);
 
     gpio.Pin = GPIO_PIN_10;
+#if defined(STM32F103xB)
     gpio.Mode = GPIO_MODE_INPUT;
     gpio.Pull = GPIO_NOPULL;
+#elif defined(STM32F411xE)
+    gpio.Mode = GPIO_MODE_AF_PP;
+    gpio.Pull = GPIO_PULLUP;
+    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    gpio.Alternate = GPIO_AF7_USART1;
+#endif
     HAL_GPIO_Init(GPIOA, &gpio);
 
     huart1.Instance = USART1;
@@ -99,8 +117,9 @@ int main(void)
     app_gpio_init();
     app_uart_init();
 
-    app_send_text("APP RUNNING\r\n");
-    app_send_text("Send 'u' to enter programmer\r\n");
+    app_send_text("\r\n=== APP RUNNING ===\r\n");
+    app_send_text("UART: USART1 @ 115200 8N1\r\n");
+    app_send_text("Command: send 'u' to enter programmer\r\n\r\n");
 
     for (;;)
     {

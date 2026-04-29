@@ -1,0 +1,181 @@
+/*
+ * File: startup_stm32f411xe.c
+ * Author: Phat Nguyen
+ * Date: 2026-04-29
+ * Description: Defines the STM32F411 vector table and default interrupt handlers.
+ */
+
+#include "startup_portable_cortexm.h"
+
+#define STM32F411_WEAK_HANDLER(name)                                           \
+  void name(void) __attribute__((weak));                                       \
+  void name(void) { Default_Handler(); }
+
+typedef void (*stm32f411_isr_handler_t)(void);
+
+STM32F411_WEAK_HANDLER(NMI_Handler)
+STM32F411_WEAK_HANDLER(HardFault_Handler)
+STM32F411_WEAK_HANDLER(MemManage_Handler)
+STM32F411_WEAK_HANDLER(BusFault_Handler)
+STM32F411_WEAK_HANDLER(UsageFault_Handler)
+STM32F411_WEAK_HANDLER(SVC_Handler)
+STM32F411_WEAK_HANDLER(DebugMon_Handler)
+STM32F411_WEAK_HANDLER(PendSV_Handler)
+STM32F411_WEAK_HANDLER(SysTick_Handler)
+STM32F411_WEAK_HANDLER(WWDG_IRQHandler)
+STM32F411_WEAK_HANDLER(PVD_IRQHandler)
+STM32F411_WEAK_HANDLER(TAMP_STAMP_IRQHandler)
+STM32F411_WEAK_HANDLER(RTC_WKUP_IRQHandler)
+STM32F411_WEAK_HANDLER(FLASH_IRQHandler)
+STM32F411_WEAK_HANDLER(RCC_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI0_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI1_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI2_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI3_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI4_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream0_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream1_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream2_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream3_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream4_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream5_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream6_IRQHandler)
+STM32F411_WEAK_HANDLER(ADC_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI9_5_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM1_BRK_TIM9_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM1_UP_TIM10_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM1_TRG_COM_TIM11_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM1_CC_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM2_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM3_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM4_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C1_EV_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C1_ER_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C2_EV_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C2_ER_IRQHandler)
+STM32F411_WEAK_HANDLER(SPI1_IRQHandler)
+STM32F411_WEAK_HANDLER(SPI2_IRQHandler)
+STM32F411_WEAK_HANDLER(USART1_IRQHandler)
+STM32F411_WEAK_HANDLER(USART2_IRQHandler)
+STM32F411_WEAK_HANDLER(EXTI15_10_IRQHandler)
+STM32F411_WEAK_HANDLER(RTC_Alarm_IRQHandler)
+STM32F411_WEAK_HANDLER(OTG_FS_WKUP_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA1_Stream7_IRQHandler)
+STM32F411_WEAK_HANDLER(SDIO_IRQHandler)
+STM32F411_WEAK_HANDLER(TIM5_IRQHandler)
+STM32F411_WEAK_HANDLER(SPI3_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream0_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream1_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream2_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream3_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream4_IRQHandler)
+STM32F411_WEAK_HANDLER(OTG_FS_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream5_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream6_IRQHandler)
+STM32F411_WEAK_HANDLER(DMA2_Stream7_IRQHandler)
+STM32F411_WEAK_HANDLER(USART6_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C3_EV_IRQHandler)
+STM32F411_WEAK_HANDLER(I2C3_ER_IRQHandler)
+STM32F411_WEAK_HANDLER(FPU_IRQHandler)
+STM32F411_WEAK_HANDLER(SPI4_IRQHandler)
+
+__attribute__((section(".isr_vector")))
+const stm32f411_isr_handler_t g_pfnVectors[] = {
+    (stm32f411_isr_handler_t)&_estack,
+    Reset_Handler,
+    NMI_Handler,
+    HardFault_Handler,
+    MemManage_Handler,
+    BusFault_Handler,
+    UsageFault_Handler,
+    0,
+    0,
+    0,
+    0,
+    SVC_Handler,
+    DebugMon_Handler,
+    0,
+    PendSV_Handler,
+    SysTick_Handler,
+    WWDG_IRQHandler,
+    PVD_IRQHandler,
+    TAMP_STAMP_IRQHandler,
+    RTC_WKUP_IRQHandler,
+    FLASH_IRQHandler,
+    RCC_IRQHandler,
+    EXTI0_IRQHandler,
+    EXTI1_IRQHandler,
+    EXTI2_IRQHandler,
+    EXTI3_IRQHandler,
+    EXTI4_IRQHandler,
+    DMA1_Stream0_IRQHandler,
+    DMA1_Stream1_IRQHandler,
+    DMA1_Stream2_IRQHandler,
+    DMA1_Stream3_IRQHandler,
+    DMA1_Stream4_IRQHandler,
+    DMA1_Stream5_IRQHandler,
+    DMA1_Stream6_IRQHandler,
+    ADC_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    EXTI9_5_IRQHandler,
+    TIM1_BRK_TIM9_IRQHandler,
+    TIM1_UP_TIM10_IRQHandler,
+    TIM1_TRG_COM_TIM11_IRQHandler,
+    TIM1_CC_IRQHandler,
+    TIM2_IRQHandler,
+    TIM3_IRQHandler,
+    TIM4_IRQHandler,
+    I2C1_EV_IRQHandler,
+    I2C1_ER_IRQHandler,
+    I2C2_EV_IRQHandler,
+    I2C2_ER_IRQHandler,
+    SPI1_IRQHandler,
+    SPI2_IRQHandler,
+    USART1_IRQHandler,
+    USART2_IRQHandler,
+    0,
+    EXTI15_10_IRQHandler,
+    RTC_Alarm_IRQHandler,
+    OTG_FS_WKUP_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    DMA1_Stream7_IRQHandler,
+    0,
+    SDIO_IRQHandler,
+    TIM5_IRQHandler,
+    SPI3_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    DMA2_Stream0_IRQHandler,
+    DMA2_Stream1_IRQHandler,
+    DMA2_Stream2_IRQHandler,
+    DMA2_Stream3_IRQHandler,
+    DMA2_Stream4_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    OTG_FS_IRQHandler,
+    DMA2_Stream5_IRQHandler,
+    DMA2_Stream6_IRQHandler,
+    DMA2_Stream7_IRQHandler,
+    USART6_IRQHandler,
+    I2C3_EV_IRQHandler,
+    I2C3_ER_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    0,
+    FPU_IRQHandler,
+    0,
+    0,
+    SPI4_IRQHandler,
+};

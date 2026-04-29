@@ -43,3 +43,23 @@ boot_jump_to_image(addr)
 -> startup
 -> main()
 ```
+
+## Target-specific note
+
+Flow boot logic giua `stm32f103` va `stm32f411ce` la giong nhau.
+
+Khac biet hien tai nam o:
+
+- memory map
+- startup vector table
+- flash erase/program implementation
+- UART / GPIO init cho app bring-up
+
+Vi vay khi move repo sang workspace moi, neu flow sai o 1 target nhung dung o target kia,
+uu tien kiem tra:
+
+1. linker script cua target
+2. `bootloader/common/boot_config.h`
+3. startup file cua target
+4. `port_flash.c`
+5. `port_uart.c`
