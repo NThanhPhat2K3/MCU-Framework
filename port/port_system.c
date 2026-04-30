@@ -15,6 +15,25 @@ static void port_system_clock_init(void)
     RCC_OscInitTypeDef osc = {0};
     RCC_ClkInitTypeDef clk = {0};
 
+#if defined(STM32F411xE)
+    /*
+     * Use the board's external 25 MHz clock directly while bring-up/debugging.
+     * That keeps UART timing tied to the real board oscillator instead of the
+     * less accurate HSI internal RC.
+     */
+    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState = RCC_HSE_ON;
+    osc.PLL.PLLState = RCC_PLL_NONE;
+    (void)HAL_RCC_OscConfig(&osc);
+
+    clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+    clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    clk.APB1CLKDivider = RCC_HCLK_DIV1;
+    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#else
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     osc.HSIState = RCC_HSI_ON;
     osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -28,6 +47,7 @@ static void port_system_clock_init(void)
     clk.APB1CLKDivider = RCC_HCLK_DIV1;
     clk.APB2CLKDivider = RCC_HCLK_DIV1;
     (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#endif
 }
 
 void port_system_init(void)

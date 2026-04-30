@@ -40,11 +40,11 @@ extern "C" {
 /* ########################## Oscillator Values ############################# */
 /*
  * These constants are read by the RCC HAL when it computes clock values.
- * The example currently boots from HSI, but we keep the standard set of
- * values here so the file still looks like the ST template and is easier
- * to extend later if the board moves to HSE/PLL.
+ * The Black Pill style STM32F411 boards used in this repo commonly ship
+ * with a 25 MHz HSE source. Keep HSE_VALUE aligned with the real board
+ * clock so UART baud generation and HAL clock reporting stay accurate.
  */
-#define HSE_VALUE ((uint32_t)8000000u)
+#define HSE_VALUE ((uint32_t)25000000u)
 #define HSE_STARTUP_TIMEOUT ((uint32_t)100u)
 #define HSI_VALUE ((uint32_t)16000000u)
 #define EXTERNAL_CLOCK_VALUE ((uint32_t)12288000u)

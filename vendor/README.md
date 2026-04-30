@@ -1,17 +1,19 @@
-# Vendor Packages
+# Vendor Components
 
-Thu muc nay dung de dat vendor component ma project can de build.
-Vendor component la code cua nha san xuat, vi du HAL driver va CMSIS device.
+This folder stores third-party MCU support code used by the project.
 
-Project nay uu tien dung cac repo component nho thay vi clone full `STM32CubeF1`
-hoac `STM32CubeF4`, vi:
+## Why These Files Are Included
 
-- nhe hon
-- de share hon
-- de dung hon tren ca Windows va Linux
-- tach ro vendor layer va BSP layer
+The goal of this repository is simple setup:
 
-Vendor component hien tai:
+- clone
+- build
+- learn
+
+Because of that, the needed vendor components are stored inside the repository
+instead of forcing new users to clone many extra packages first.
+
+## Current Components
 
 - `CMSIS_5/`
 - `cmsis-device-f1/`
@@ -19,38 +21,27 @@ Vendor component hien tai:
 - `stm32f1xx-hal-driver/`
 - `stm32f4xx-hal-driver/`
 
-Nguon goc third-party:
+## Source
 
-- `CMSIS_5/` duoc lay tu ARM
-- `cmsis-device-*` va `stm32*hal-driver/` duoc lay tu STMicroelectronics
+- `CMSIS_5/` comes from ARM
+- `cmsis-device-*` comes from STMicroelectronics
+- `stm32*hal-driver/` comes from STMicroelectronics
 
-Muc tieu cua repo nay la de hoc tap, porting, va chia se de clone ve build nhanh.
-Vi vay cac vendor component duoc commit cung repo thay vi bat buoc nguoi moi
-phai clone them bang tay o buoc dau tien.
+## Why Component Repos Are Used
 
-Dung Makefile:
+This project uses smaller component repositories instead of full STM32Cube
+packages because they are:
 
-```bash
-make vendor-core
-make vendor-f1
-make vendor-f4
+- lighter
+- easier to share
+- easier to understand
+- better for both Linux and Windows setups
 
-# hoac clone tat ca
-make vendor
-```
+## Layer Split
 
-Hoac clone thu cong:
-
-```bash
-git clone --depth 1 https://github.com/ARM-software/CMSIS_5.git vendor/CMSIS_5
-git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f1.git vendor/cmsis-device-f1
-git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f4.git vendor/cmsis-device-f4
-git clone --depth 1 https://github.com/STMicroelectronics/stm32f1xx-hal-driver.git vendor/stm32f1xx-hal-driver
-git clone --depth 1 https://github.com/STMicroelectronics/stm32f4xx-hal-driver.git vendor/stm32f4xx-hal-driver
-```
-
-Phan tach vai tro:
-
-- `vendor/` cho HAL driver, CMSIS core, CMSIS device
-- `stm32f103/`, `stm32f411ce/` cho startup/linker/system theo target chip
-- `bsp/` de danh cho board-specific code cua du an tu viet sau nay
+- `vendor/`
+  third-party HAL and CMSIS code
+- `stm32f103/`, `stm32f411ce/`
+  target-specific startup, linker, and system files
+- future `bsp/`
+  board-specific code written by the project itself

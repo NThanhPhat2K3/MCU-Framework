@@ -1,32 +1,16 @@
 #!/usr/bin/env python3
-"""
-File: send_image.py
-Author: Phat Nguyen
-Date: 2026-04-26
-Description: Sends an application binary to the Programmer image over UART.
-"""
+"""CLI wrapper around the shared UART firmware update client."""
 
 import argparse
-import struct
-import time
+import os
+import sys
 
-import serial
+TOOLS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "tools"))
+if TOOLS_DIR not in sys.path:
+    sys.path.insert(0, TOOLS_DIR)
 
-
-def crc8(cmd: int, data: bytes) -> int:
-    length = len(data)
-    value = cmd ^ (length & 0xFF) ^ ((length >> 8) & 0xFF)
-    for byte in data:
-        value ^= byte
-    return value & 0xFF
-
-
-def send_packet(port: serial.Serial, cmd: bytes, data: bytes = b"") -> bytes:
-    packet = cmd + struct.pack("<H", len(data)) + data + bytes([crc8(cmd[0], data)])
-    port.write(packet)
-    port.flush()
-    time.sleep(0.05)
-    return port.read_all()
+from update_client import UpdateConfig
+from update_client import flash_image
 
 
 def main() -> None:
@@ -38,24 +22,16 @@ def main() -> None:
     parser.add_argument("--chunk", type=int, default=128, help="Chunk size in bytes")
     args = parser.parse_args()
 
-    with serial.Serial(args.port, args.baud, timeout=0.3) as port:
-        time.sleep(0.3)
-        print(port.read_all().decode(errors="ignore"), end="")
-
-        print(send_packet(port, b"I").decode(errors="ignore"), end="")
-        print(send_packet(port, b"E").decode(errors="ignore"), end="")
-
-        address = args.app_addr
-        with open(args.app_bin, "rb") as image:
-            while True:
-                chunk = image.read(args.chunk)
-                if not chunk:
-                    break
-                payload = struct.pack("<I", address) + chunk
-                print(send_packet(port, b"W", payload).decode(errors="ignore"), end="")
-                address += len(chunk)
-
-        print(send_packet(port, b"J").decode(errors="ignore"), end="")
+    flash_image(
+        UpdateConfig(
+            port=args.port,
+            baud=args.baud,
+            app_bin=args.app_bin,
+            app_addr=args.app_addr,
+            chunk_size=args.chunk,
+        ),
+        log=print,
+    )
 
 
 if __name__ == "__main__":

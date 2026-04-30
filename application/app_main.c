@@ -17,6 +17,24 @@ static void app_clock_init(void) {
   RCC_OscInitTypeDef osc = {0};
   RCC_ClkInitTypeDef clk = {0};
 
+#if defined(STM32F411xE)
+  /*
+   * Prefer the board's external 25 MHz HSE so USART timing follows the
+   * physical oscillator on the module instead of the internal RC clock.
+   */
+  osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  osc.HSEState = RCC_HSE_ON;
+  osc.PLL.PLLState = RCC_PLL_NONE;
+  (void)HAL_RCC_OscConfig(&osc);
+
+  clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  clk.APB1CLKDivider = RCC_HCLK_DIV1;
+  clk.APB2CLKDivider = RCC_HCLK_DIV1;
+  (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#else
   osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   osc.HSIState = RCC_HSI_ON;
   osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -30,6 +48,7 @@ static void app_clock_init(void) {
   clk.APB1CLKDivider = RCC_HCLK_DIV1;
   clk.APB2CLKDivider = RCC_HCLK_DIV1;
   (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#endif
 }
 
 static void app_gpio_init(void) {
@@ -113,7 +132,7 @@ int main(void) {
   app_uart_init();
 
   app_send_text("\r\n=== APP RUNNING ===\r\n");
-  app_send_text("UART: USART1 @ 115200 8N1\r\n");
+  app_send_text("UART: USART1 @ 115200 8N1 (HSE 25 MHz)\r\n");
   app_send_text("Command: send 'u' to enter programmer\r\n\r\n");
 
   for (;;) {
