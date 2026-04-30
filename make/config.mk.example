@@ -1,7 +1,31 @@
 # File: config.mk.example
 # Author: Phat Nguyen
 # Date: 2026-04-29
-# Description: Example local build configuration pointing to STM32Cube packages stored inside vendor/.
+# Description: Optional local overrides. Copy this file to make/config.mk only when needed.
 
-STM32CUBE_F1_DIR := /mnt/hdd1/project/MCU-Framework/vendor/STM32CubeF1
-STM32CUBE_F4_DIR := /mnt/hdd1/project/MCU-Framework/vendor/STM32CubeF4
+TOOLCHAIN_PREFIX := arm-none-eabi-
+
+# By default, the Makefile expects vendor components inside this repo:
+#   vendor/CMSIS_5
+#   vendor/cmsis-device-f1
+#   vendor/cmsis-device-f4
+#   vendor/stm32f1xx-hal-driver
+#   vendor/stm32f4xx-hal-driver
+#
+# Run:
+#   make vendor-core
+#   make vendor-f1
+#   make vendor-f4
+#
+# Override these only if you want to reuse an existing local clone.
+# CMSIS_CORE_DIR := /absolute/path/to/CMSIS_5
+# CMSIS_DEVICE_F1_DIR := /absolute/path/to/cmsis-device-f1
+# CMSIS_DEVICE_F4_DIR := /absolute/path/to/cmsis-device-f4
+# STM32F1_HAL_DIR := /absolute/path/to/stm32f1xx-hal-driver
+# STM32F4_HAL_DIR := /absolute/path/to/stm32f4xx-hal-driver
+
+# Optional when STM32_Programmer_CLI is not in PATH.
+# Windows example:
+# CUBE_PROGRAMMER_CLI := C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe
+# Linux example:
+# CUBE_PROGRAMMER_CLI := /home/user/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI

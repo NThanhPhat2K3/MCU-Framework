@@ -5,19 +5,60 @@
 
 PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
+#
+# User-facing build knobs
+#
+# TARGET selects which MCU/board memory map and HAL package to use.
+# OUT_ROOT is where all generated files are placed.
+#
+# The vendor package paths below point inside this repo by default.
+# A beginner can run the vendor targets once, then build without
+# learning machine-specific STM32Cube repository paths.
+#
+# Advanced users can still create make/config.mk to override these paths
+# without editing this Makefile.
+#
+TARGET ?= stm32f411ce
+OUT_ROOT ?= $(PROJECT_ROOT)/out
+TOOLCHAIN_PREFIX ?= arm-none-eabi-
+CMSIS_CORE_DIR ?= $(PROJECT_ROOT)/vendor/CMSIS_5
+CMSIS_DEVICE_F1_DIR ?= $(PROJECT_ROOT)/vendor/cmsis-device-f1
+CMSIS_DEVICE_F4_DIR ?= $(PROJECT_ROOT)/vendor/cmsis-device-f4
+STM32F1_HAL_DIR ?= $(PROJECT_ROOT)/vendor/stm32f1xx-hal-driver
+STM32F4_HAL_DIR ?= $(PROJECT_ROOT)/vendor/stm32f4xx-hal-driver
+CUBE_PROGRAMMER_CLI ?= /home/phat/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI
+CUBE_PROGRAMMER_CONNECT ?= port=SWD mode=UR reset=HWrst
+
+#
+# Local override file
+#
+# make/config.mk is optional and git-ignored. It is only needed when a
+# different machine installs STM32Cube, CubeProgrammer, or the toolchain
+# somewhere else.
+#
+# The leading '-' means "do not fail if the file does not exist".
+#
 -include $(PROJECT_ROOT)/make/config.mk
 
-TARGET ?= stm32f103
-OUT_ROOT ?= $(PROJECT_ROOT)/out
-FLASH_TOOL ?= st-flash
-FLASH_RESET_FLAGS ?= --reset
+#
+# Toolchain commands
+#
+# GCC builds C files, G++ links the final ELF so C++ runtime hooks can
+# be resolved if the project later adds C++ code.
+#
+CC := $(TOOLCHAIN_PREFIX)gcc
+CXX := $(TOOLCHAIN_PREFIX)g++
+OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
+OBJDUMP := $(TOOLCHAIN_PREFIX)objdump
+SIZE := $(TOOLCHAIN_PREFIX)size
 
-CC := /mnt/hdd1/toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc
-CXX := /mnt/hdd1/toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-g++
-OBJCOPY := /mnt/hdd1/toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objcopy
-OBJDUMP := /mnt/hdd1/toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump
-SIZE := /mnt/hdd1/toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-size
-
+#
+# Include folders shared by all firmware images
+#
+# Every image needs the common boot headers, port layer, startup code,
+# and application headers. Target-specific config folders are added
+# later inside each TARGET block.
+#
 COMMON_DIRS := \
 	$(PROJECT_ROOT) \
 	$(PROJECT_ROOT)/bootloader/common \
@@ -37,24 +78,38 @@ STM32F411CE_STARTUP_DIR := $(STM32F411CE_DIR)/startup
 STM32F411CE_SYSTEM_DIR := $(STM32F411CE_DIR)/system
 STM32F411CE_LD_DIR := $(STM32F411CE_DIR)/ld
 
+#
+# Target selection
+#
+# Each supported target defines:
+# - CPU flags
+# - preprocessor defines expected by STM32 HAL
+# - target-specific include paths
+# - HAL source files to compile
+# - startup/system files
+# - one linker script per image
+# - flash addresses for programming
+# - sector ranges for erase commands
+#
 ifeq ($(TARGET),stm32f103)
 MCU_FLAGS := -mcpu=cortex-m3 -mthumb
 DEFINES := -DSTM32F103xB -DUSE_HAL_DRIVER
 INCLUDES := \
 	$(addprefix -I,$(COMMON_DIRS)) \
 	-I$(STM32F103_CONFIG_DIR) \
-	-I$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Inc \
-	-I$(STM32CUBE_F1_DIR)/Drivers/CMSIS/Include \
-	-I$(STM32CUBE_F1_DIR)/Drivers/CMSIS/Device/ST/STM32F1xx/Include
+	-I$(STM32F1_HAL_DIR)/Inc \
+	-I$(CMSIS_CORE_DIR)/CMSIS/Core/Include \
+	-I$(CMSIS_DEVICE_F1_DIR)/Include
 HAL_SRCS := \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash_ex.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c \
-	$(STM32CUBE_F1_DIR)/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_cortex.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_dma.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_flash.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_flash_ex.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_gpio.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_rcc.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_rcc_ex.c \
+	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_uart.c
 STARTUP_SRCS := \
 	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
 	$(STM32F103_STARTUP_DIR)/startup_stm32f103xb.c \
@@ -65,29 +120,32 @@ APP_LD := $(STM32F103_LD_DIR)/app.ld
 BOOTMANAGER_ADDR := 0x08000000
 PROGRAMMER_ADDR := 0x08004000
 APP_ADDR := 0x08008000
-CHECK_CONFIG_VAR := STM32CUBE_F1_DIR
-CHECK_CONFIG_HINT := STM32CubeF1
+BOOTMANAGER_ERASE_SECTORS := 0 15
+PROGRAMMER_ERASE_SECTORS := 16 31
+APP_ERASE_SECTORS := 32 127
+CHECK_COMPONENT_DIRS := $(CMSIS_CORE_DIR) $(CMSIS_DEVICE_F1_DIR) $(STM32F1_HAL_DIR)
+CHECK_COMPONENT_HINT := make vendor-core make vendor-f1
 else ifeq ($(TARGET),stm32f411ce)
 MCU_FLAGS := -mcpu=cortex-m4 -mthumb
 DEFINES := -DSTM32F411xE -DUSE_HAL_DRIVER
 INCLUDES := \
 	$(addprefix -I,$(COMMON_DIRS)) \
 	-I$(STM32F411CE_CONFIG_DIR) \
-	-I$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Inc \
-	-I$(STM32CUBE_F4_DIR)/Drivers/CMSIS/Include \
-	-I$(STM32CUBE_F4_DIR)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+	-I$(STM32F4_HAL_DIR)/Inc \
+	-I$(CMSIS_CORE_DIR)/CMSIS/Core/Include \
+	-I$(CMSIS_DEVICE_F4_DIR)/Include
 HAL_SRCS := \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
-	$(STM32CUBE_F4_DIR)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_cortex.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_dma.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_flash.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_flash_ex.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_gpio.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_pwr.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_pwr_ex.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_rcc.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_rcc_ex.c \
+	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_uart.c
 STARTUP_SRCS := \
 	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
 	$(STM32F411CE_STARTUP_DIR)/startup_stm32f411xe.c \
@@ -98,12 +156,28 @@ APP_LD := $(STM32F411CE_LD_DIR)/app.ld
 BOOTMANAGER_ADDR := 0x08000000
 PROGRAMMER_ADDR := 0x08008000
 APP_ADDR := 0x08010000
-CHECK_CONFIG_VAR := STM32CUBE_F4_DIR
-CHECK_CONFIG_HINT := STM32CubeF4
+BOOTMANAGER_ERASE_SECTORS := 0
+PROGRAMMER_ERASE_SECTORS := 1
+APP_ERASE_SECTORS := 4 7
+CHECK_COMPONENT_DIRS := $(CMSIS_CORE_DIR) $(CMSIS_DEVICE_F4_DIR) $(STM32F4_HAL_DIR)
+CHECK_COMPONENT_HINT := make vendor-core make vendor-f4
 else
 $(error Unsupported TARGET '$(TARGET)')
 endif
 
+#
+# Common compiler and linker flags
+#
+# -ffunction-sections/-fdata-sections put each function/data item into
+# its own section. The linker can then remove unused code with
+# --gc-sections.
+#
+# -MMD/-MP generate dependency files beside object files, so editing a
+# header automatically rebuilds the right sources on the next make run.
+#
+# nano.specs/nosys.specs keep the firmware small and avoid depending on
+# an operating system syscall layer.
+#
 COMMON_CPPFLAGS := \
 	$(MCU_FLAGS) \
 	-ffunction-sections \
@@ -135,6 +209,17 @@ COMMON_LDFLAGS := \
 	-specs=nano.specs \
 	-specs=nosys.specs
 
+#
+# Firmware image source lists
+#
+# This framework builds three independent images:
+# - BootManager: runs first after reset and selects App/Programmer
+# - Programmer: receives update packets and writes the App region
+# - App: normal user firmware plus a request path back to Programmer
+#
+# Each image gets its own ELF/BIN/HEX/MAP/LST output and its own linker
+# script, because each image lives at a different flash address.
+#
 BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/bootmanager/main.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
@@ -162,10 +247,20 @@ APP_SRCS := \
 	$(STARTUP_SRCS) \
 	$(HAL_SRCS)
 
-.PHONY: all help bootmanager programmer app clean print-config check-config \
+.PHONY: all help vendor vendor-core vendor-f1 vendor-f4 \
+	bootmanager programmer app clean print-config check-config check-toolchain \
 	bootmanager-image programmer-image app-image \
-	flash-bootmanager flash-programmer flash-app flash-all check-flash-tool
+	flash-bootmanager flash-programmer flash-app flash-all \
+	erase-all erase-bootmanager erase-programmer erase-app check-cube-programmer
 
+#
+# High-level entry points
+#
+# These are the commands humans normally type, for example:
+#   make TARGET=stm32f411ce all
+#   make TARGET=stm32f411ce flash-all
+#   make TARGET=stm32f411ce erase-app
+#
 all: bootmanager programmer app
 
 help:
@@ -177,16 +272,24 @@ help:
 	@echo "  make app           Build App image"
 	@echo "  make all           Build all images"
 	@echo "  make clean         Remove build output"
+	@echo "  make vendor-core     Clone/update ARM CMSIS core under vendor/"
+	@echo "  make vendor-f1       Clone/update STM32F1 HAL + CMSIS device under vendor/"
+	@echo "  make vendor-f4       Clone/update STM32F4 HAL + CMSIS device under vendor/"
+	@echo "  make vendor          Clone/update all vendor components"
 	@echo "  make print-config  Print current build configuration"
-	@echo "  make flash-bootmanager  Build and flash BootManager via ST-Link"
-	@echo "  make flash-programmer   Build and flash Programmer via ST-Link"
-	@echo "  make flash-app          Build and flash App via ST-Link"
-	@echo "  make flash-all          Build and flash all images via ST-Link"
+	@echo "  make flash-bootmanager  Build and flash BootManager via STM32CubeProgrammer"
+	@echo "  make flash-programmer   Build and flash Programmer via STM32CubeProgrammer"
+	@echo "  make flash-app          Build and flash App via STM32CubeProgrammer"
+	@echo "  make flash-all          Build and flash all images via STM32CubeProgrammer"
+	@echo "  make erase-all          Mass erase the target MCU flash"
+	@echo "  make erase-bootmanager  Erase the BootManager region"
+	@echo "  make erase-programmer   Erase the Programmer region"
+	@echo "  make erase-app          Erase the App region"
 	@echo ""
 	@echo "Configuration:"
-	@echo "  1. Copy make/config.mk.example to make/config.mk"
-	@echo "  2. Set STM32CUBE_F1_DIR and/or STM32CUBE_F4_DIR to your STM32Cube package path"
-	@echo "  3. Install stlink tools so '$(FLASH_TOOL)' is available in PATH"
+	@echo "  1. Run make vendor or make vendor-f4 to clone the needed vendor components"
+	@echo "  2. Install GNU Arm Embedded Toolchain"
+	@echo "  3. Install STM32CubeProgrammer so STM32_Programmer_CLI is available"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make TARGET=stm32f103 all"
@@ -199,26 +302,114 @@ help:
 print-config:
 	@echo "PROJECT_ROOT=$(PROJECT_ROOT)"
 	@echo "TARGET=$(TARGET)"
-	@echo "STM32CUBE_F1_DIR=$(STM32CUBE_F1_DIR)"
-	@echo "STM32CUBE_F4_DIR=$(STM32CUBE_F4_DIR)"
-	@echo "FLASH_TOOL=$(FLASH_TOOL)"
+	@echo "CMSIS_CORE_DIR=$(CMSIS_CORE_DIR)"
+	@echo "CMSIS_DEVICE_F1_DIR=$(CMSIS_DEVICE_F1_DIR)"
+	@echo "CMSIS_DEVICE_F4_DIR=$(CMSIS_DEVICE_F4_DIR)"
+	@echo "STM32F1_HAL_DIR=$(STM32F1_HAL_DIR)"
+	@echo "STM32F4_HAL_DIR=$(STM32F4_HAL_DIR)"
+	@echo "TOOLCHAIN_PREFIX=$(TOOLCHAIN_PREFIX)"
+	@echo "CUBE_PROGRAMMER_CLI=$(CUBE_PROGRAMMER_CLI)"
+	@echo "CUBE_PROGRAMMER_CONNECT=$(CUBE_PROGRAMMER_CONNECT)"
 	@echo "OUT_ROOT=$(OUT_ROOT)"
 
-check-config:
-	@if [ -z "$($(CHECK_CONFIG_VAR))" ]; then \
-		echo "$(CHECK_CONFIG_VAR) is not set."; \
-		echo "Copy portable_boot_example/make/config.mk.example to portable_boot_example/make/config.mk"; \
-		echo "Then set $(CHECK_CONFIG_VAR) to your $(CHECK_CONFIG_HINT) package path."; \
+#
+# Vendor package fetch targets
+#
+# These clone the official ST repositories into vendor/. The packages
+# are intentionally git-ignored because they are large third-party code.
+# Keeping them under vendor/ gives Windows and Linux the same project
+# layout after the first clone.
+#
+vendor: vendor-core vendor-f1 vendor-f4
+
+vendor-core:
+	@if [ -d "$(CMSIS_CORE_DIR)/.git" ]; then \
+		git -C "$(CMSIS_CORE_DIR)" pull --ff-only; \
+	elif [ -d "$(CMSIS_CORE_DIR)" ]; then \
+		echo "$(CMSIS_CORE_DIR) exists but is not a git repository."; \
+		echo "Remove it or set CMSIS_CORE_DIR to another path."; \
+		exit 1; \
+	else \
+		git clone --depth 1 https://github.com/ARM-software/CMSIS_5.git "$(CMSIS_CORE_DIR)"; \
+	fi
+
+vendor-f1:
+	@if [ -d "$(CMSIS_DEVICE_F1_DIR)/.git" ]; then \
+		git -C "$(CMSIS_DEVICE_F1_DIR)" pull --ff-only; \
+	elif [ -d "$(CMSIS_DEVICE_F1_DIR)" ]; then \
+		echo "$(CMSIS_DEVICE_F1_DIR) exists but is not a git repository."; \
+		echo "Remove it or set CMSIS_DEVICE_F1_DIR to another path."; \
+		exit 1; \
+	else \
+		git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f1.git "$(CMSIS_DEVICE_F1_DIR)"; \
+	fi
+	@if [ -d "$(STM32F1_HAL_DIR)/.git" ]; then \
+		git -C "$(STM32F1_HAL_DIR)" pull --ff-only; \
+	elif [ -d "$(STM32F1_HAL_DIR)" ]; then \
+		echo "$(STM32F1_HAL_DIR) exists but is not a git repository."; \
+		echo "Remove it or set STM32F1_HAL_DIR to another path."; \
+		exit 1; \
+	else \
+		git clone --depth 1 https://github.com/STMicroelectronics/stm32f1xx-hal-driver.git "$(STM32F1_HAL_DIR)"; \
+	fi
+
+vendor-f4:
+	@if [ -d "$(CMSIS_DEVICE_F4_DIR)/.git" ]; then \
+		git -C "$(CMSIS_DEVICE_F4_DIR)" pull --ff-only; \
+	elif [ -d "$(CMSIS_DEVICE_F4_DIR)" ]; then \
+		echo "$(CMSIS_DEVICE_F4_DIR) exists but is not a git repository."; \
+		echo "Remove it or set CMSIS_DEVICE_F4_DIR to another path."; \
+		exit 1; \
+	else \
+		git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f4.git "$(CMSIS_DEVICE_F4_DIR)"; \
+	fi
+	@if [ -d "$(STM32F4_HAL_DIR)/.git" ]; then \
+		git -C "$(STM32F4_HAL_DIR)" pull --ff-only; \
+	elif [ -d "$(STM32F4_HAL_DIR)" ]; then \
+		echo "$(STM32F4_HAL_DIR) exists but is not a git repository."; \
+		echo "Remove it or set STM32F4_HAL_DIR to another path."; \
+		exit 1; \
+	else \
+		git clone --depth 1 https://github.com/STMicroelectronics/stm32f4xx-hal-driver.git "$(STM32F4_HAL_DIR)"; \
+	fi
+
+#
+# Environment checks
+#
+# check-config validates the build inputs.
+# check-cube-programmer validates only flash/erase tooling, so building
+# can still work on a machine that does not have an ST-LINK connected.
+#
+check-toolchain:
+	@if ! command -v $(CC) >/dev/null 2>&1; then \
+		echo "$(CC) not found in PATH."; \
+		echo "Set TOOLCHAIN_PREFIX or add the GNU Arm Embedded Toolchain to PATH."; \
 		exit 1; \
 	fi
 
-check-flash-tool:
-	@if ! command -v $(FLASH_TOOL) >/dev/null 2>&1; then \
-		echo "$(FLASH_TOOL) not found in PATH."; \
-		echo "Install stlink tools, then run the flash target again."; \
+check-config: check-toolchain
+	@for dir in $(CHECK_COMPONENT_DIRS); do \
+		if [ ! -d "$$dir" ]; then \
+			echo "$$dir does not exist."; \
+			echo "Run $(CHECK_COMPONENT_HINT) or override the vendor paths in make/config.mk."; \
+			exit 1; \
+		fi; \
+	done
+
+check-cube-programmer:
+	@if [ ! -x "$(CUBE_PROGRAMMER_CLI)" ] && ! command -v "$(CUBE_PROGRAMMER_CLI)" >/dev/null 2>&1; then \
+		echo "$(CUBE_PROGRAMMER_CLI) not found."; \
+		echo "Set CUBE_PROGRAMMER_CLI to STM32_Programmer_CLI or STM32_Programmer_CLI.exe."; \
 		exit 1; \
 	fi
 
+#
+# Per-image public build targets
+#
+# The IMAGE variables are target-specific variables. For example, when
+# make enters the bootmanager target, IMAGE becomes "bootmanager" and
+# IMAGE_SRCS becomes BOOTMANAGER_SRCS.
+#
 bootmanager: IMAGE := bootmanager
 bootmanager: IMAGE_SRCS := $(BOOTMANAGER_SRCS)
 bootmanager: IMAGE_LD := $(BOOTMANAGER_LD)
@@ -234,20 +425,51 @@ app: IMAGE_SRCS := $(APP_SRCS)
 app: IMAGE_LD := $(APP_LD)
 app: check-config app-image
 
-flash-bootmanager: bootmanager check-flash-tool
-	$(FLASH_TOOL) $(FLASH_RESET_FLAGS) write $(OUT_ROOT)/$(TARGET)/bootmanager/bootmanager.bin $(BOOTMANAGER_ADDR)
+#
+# Flash and erase targets
+#
+# STM32CubeProgrammer can program a raw .bin when we also pass the
+# destination address. That is why each image command includes both:
+#   image.bin + image start address
+#
+# Erase commands use target-specific sector ranges from the TARGET block.
+# erase-all is useful before a clean bring-up, while erase-app is useful
+# when testing only the update/application region.
+#
+flash-bootmanager: bootmanager check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/bootmanager/bootmanager.bin $(BOOTMANAGER_ADDR) -v -rst
 
-flash-programmer: programmer check-flash-tool
-	$(FLASH_TOOL) $(FLASH_RESET_FLAGS) write $(OUT_ROOT)/$(TARGET)/programmer/programmer.bin $(PROGRAMMER_ADDR)
+flash-programmer: programmer check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/programmer/programmer.bin $(PROGRAMMER_ADDR) -v -rst
 
-flash-app: app check-flash-tool
-	$(FLASH_TOOL) $(FLASH_RESET_FLAGS) write $(OUT_ROOT)/$(TARGET)/app/app.bin $(APP_ADDR)
+flash-app: app check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/app/app.bin $(APP_ADDR) -v -rst
 
-flash-all: all check-flash-tool
-	$(FLASH_TOOL) write $(OUT_ROOT)/$(TARGET)/bootmanager/bootmanager.bin $(BOOTMANAGER_ADDR)
-	$(FLASH_TOOL) write $(OUT_ROOT)/$(TARGET)/programmer/programmer.bin $(PROGRAMMER_ADDR)
-	$(FLASH_TOOL) $(FLASH_RESET_FLAGS) write $(OUT_ROOT)/$(TARGET)/app/app.bin $(APP_ADDR)
+flash-all: all check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/bootmanager/bootmanager.bin $(BOOTMANAGER_ADDR) -v
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/programmer/programmer.bin $(PROGRAMMER_ADDR) -v
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/app/app.bin $(APP_ADDR) -v -rst
 
+erase-all: check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -e all -rst
+
+erase-bootmanager: check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -e [$(BOOTMANAGER_ERASE_SECTORS)] -rst
+
+erase-programmer: check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -e [$(PROGRAMMER_ERASE_SECTORS)] -rst
+
+erase-app: check-cube-programmer
+	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -e [$(APP_ERASE_SECTORS)] -rst
+
+#
+# Generic image build trampoline
+#
+# This indirection lets bootmanager/programmer/app share one build rule.
+# The first make call selects IMAGE/IMAGE_SRCS/IMAGE_LD, then the second
+# call sets IMAGE_OUT so object files and outputs go into:
+#   out/<target>/<image>/
+#
 bootmanager-image programmer-image app-image:
 	@$(MAKE) --no-print-directory \
 		IMAGE=$(IMAGE) \
@@ -267,11 +489,36 @@ image-internal:
 image-link: $(IMAGE_OUT)/$(IMAGE).elf $(IMAGE_OUT)/$(IMAGE).bin $(IMAGE_OUT)/$(IMAGE).hex $(IMAGE_OUT)/$(IMAGE).lst
 	@$(SIZE) $(IMAGE_OUT)/$(IMAGE).elf
 
+#
+# Object file mapping
+#
+# Project sources live under PROJECT_ROOT, so they keep their relative
+# folder structure inside obj/.
+#
+# STM32 HAL sources usually live outside the repo, so they are placed
+# under obj/vendor/ using only the source file name.
+#
+# vpath tells make where to find those external vendor source files when
+# a pattern rule only receives "stm32f4xx_hal.c".
+#
 IMAGE_OBJS = \
-	$(patsubst $(PROJECT_ROOT)/%.c,$(IMAGE_OUT)/obj/%.o,$(filter %.c,$(IMAGE_SRCS))) \
-	$(patsubst $(PROJECT_ROOT)/%.cpp,$(IMAGE_OUT)/obj/%.o,$(filter %.cpp,$(IMAGE_SRCS)))
+	$(patsubst $(PROJECT_ROOT)/%.c,$(IMAGE_OUT)/obj/%.o,$(filter $(PROJECT_ROOT)/%.c,$(filter %.c,$(IMAGE_SRCS)))) \
+	$(patsubst $(PROJECT_ROOT)/%.cpp,$(IMAGE_OUT)/obj/%.o,$(filter $(PROJECT_ROOT)/%.cpp,$(filter %.cpp,$(IMAGE_SRCS)))) \
+	$(foreach src,$(filter-out $(PROJECT_ROOT)/%,$(filter %.c,$(IMAGE_SRCS))),$(IMAGE_OUT)/obj/vendor/$(notdir $(src:.c=.o))) \
+	$(foreach src,$(filter-out $(PROJECT_ROOT)/%,$(filter %.cpp,$(IMAGE_SRCS))),$(IMAGE_OUT)/obj/vendor/$(notdir $(src:.cpp=.o)))
 IMAGE_DEPS = $(IMAGE_OBJS:.o=.d)
+vpath %.c $(sort $(dir $(filter-out $(PROJECT_ROOT)/%,$(filter %.c,$(IMAGE_SRCS)))))
+vpath %.cpp $(sort $(dir $(filter-out $(PROJECT_ROOT)/%,$(filter %.cpp,$(IMAGE_SRCS)))))
 
+#
+# Link and artifact generation
+#
+# The ELF is the main linked firmware image.
+# objcopy then derives:
+# - .bin for raw address-based flashing
+# - .hex for address-aware flashing or inspection
+# objdump creates a .lst file for reading sections/disassembly.
+#
 $(IMAGE_OUT)/$(IMAGE).elf: $(IMAGE_OBJS)
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON_LDFLAGS) -T$(IMAGE_LD) -Wl,-Map,$(IMAGE_OUT)/$(IMAGE).map -o $@ $^
@@ -285,6 +532,12 @@ $(IMAGE_OUT)/$(IMAGE).hex: $(IMAGE_OUT)/$(IMAGE).elf
 $(IMAGE_OUT)/$(IMAGE).lst: $(IMAGE_OUT)/$(IMAGE).elf
 	$(OBJDUMP) -h -S $< > $@
 
+#
+# Compile rules
+#
+# These rules compile C/C++ into object files. The mkdir line creates
+# the destination folder before invoking the compiler.
+#
 $(IMAGE_OUT)/obj/%.o: $(PROJECT_ROOT)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(COMMON_CFLAGS) -c $< -o $@
@@ -293,7 +546,27 @@ $(IMAGE_OUT)/obj/%.o: $(PROJECT_ROOT)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON_CXXFLAGS) -c $< -o $@
 
+$(IMAGE_OUT)/obj/vendor/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_CFLAGS) -c $< -o $@
+
+$(IMAGE_OUT)/obj/vendor/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON_CXXFLAGS) -c $< -o $@
+
+#
+# Include generated dependency files
+#
+# Missing dependency files are OK on the first build. After the first
+# successful compile, they help make rebuild only what changed.
+#
 -include $(IMAGE_DEPS)
 
+#
+# Cleanup
+#
+# All generated files live under OUT_ROOT, so clean can safely remove
+# that folder without touching source code.
+#
 clean:
 	rm -rf $(OUT_ROOT)
