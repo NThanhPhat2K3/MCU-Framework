@@ -1,64 +1,56 @@
 /*
  * File: port_uart.c
  * Author: Phat Nguyen
- * Date: 2026-04-29
- * Description: Implements a minimal STM32 USART1 transport layer for update traffic.
+ * Date: 2026-04-30
+ * Description: Provides the portable UART interface and dispatches calls to
+ * the active MCU backend through a small ops table.
  */
 
 #include "port_uart.h"
 
-#include "port_hal.h"
+#include <stddef.h>
 
-static UART_HandleTypeDef huart1;
-
-void port_uart_init(void)
-{
-    GPIO_InitTypeDef gpio = {0};
-
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_USART1_CLK_ENABLE();
-
-    gpio.Pin = GPIO_PIN_9;
-#if defined(STM32F103xB)
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-#elif defined(STM32F411xE)
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF7_USART1;
+#if defined(STM32F103xB) || defined(STM32F411xE)
+#include "port_uart_stm32.h"
+#else
+#error Unsupported MCU backend for port_uart.c
 #endif
-    HAL_GPIO_Init(GPIOA, &gpio);
 
-    gpio.Pin = GPIO_PIN_10;
-#if defined(STM32F103xB)
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_NOPULL;
-#elif defined(STM32F411xE)
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF7_USART1;
-#endif
-    HAL_GPIO_Init(GPIOA, &gpio);
+static const port_uart_ops_t *g_uart_ops;
 
-    huart1.Instance = USART1;
-    huart1.Init.BaudRate = 115200;
-    huart1.Init.WordLength = UART_WORDLENGTH_8B;
-    huart1.Init.StopBits = UART_STOPBITS_1;
-    huart1.Init.Parity = UART_PARITY_NONE;
-    huart1.Init.Mode = UART_MODE_TX_RX;
-    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    (void)HAL_UART_Init(&huart1);
+static const port_uart_ops_t *port_uart_get_ops(void) {
+  if (g_uart_ops != NULL) {
+    return g_uart_ops;
+  }
+
+  g_uart_ops = port_uart_stm32_get_ops();
+  return g_uart_ops;
 }
 
-int port_uart_read(uint8_t *buf, uint32_t len, uint32_t timeout_ms)
-{
-    return (HAL_UART_Receive(&huart1, buf, (uint16_t)len, timeout_ms) == HAL_OK) ? 0 : -1;
+void port_uart_init(void) {
+  const port_uart_ops_t *ops = port_uart_get_ops();
+
+  if ((ops != NULL) && (ops->init != NULL)) {
+    (void)ops->init();
+  }
 }
 
-int port_uart_write(const uint8_t *buf, uint32_t len)
-{
-    return (HAL_UART_Transmit(&huart1, (uint8_t *)buf, (uint16_t)len, HAL_MAX_DELAY) == HAL_OK) ? 0 : -1;
+int port_uart_read(uint8_t *buf, uint32_t len, uint32_t timeout_ms) {
+  const port_uart_ops_t *ops = port_uart_get_ops();
+
+  if ((ops == NULL) || (ops->read == NULL)) {
+    return -1;
+  }
+
+  return ops->read(buf, len, timeout_ms);
+}
+
+int port_uart_write(const uint8_t *buf, uint32_t len) {
+  const port_uart_ops_t *ops = port_uart_get_ops();
+
+  if ((ops == NULL) || (ops->write == NULL)) {
+    return -1;
+  }
+
+  return ops->write(buf, len);
 }

@@ -19,17 +19,17 @@ Typical layout for the current example:
 If you use a smaller flash variant, update:
 
 - `bootloader/common/boot_config.h`
-- linker scripts in `stm32f103/ld/`
+- linker scripts in `targets/stm32f103/ld/`
 
 ## Important Files
 
-- [bootmanager.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/ld/bootmanager.ld)
-- [programmer.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/ld/programmer.ld)
-- [app.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/ld/app.ld)
-- [stm32f1xx_hal_conf.h](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/config/stm32f1xx_hal_conf.h)
-- [system_stm32f1xx_min.c](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/system/system_stm32f1xx_min.c)
-- [BRINGUP.md](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/BRINGUP.md)
-- [LINKER_GUIDE.md](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/stm32f103/LINKER_GUIDE.md)
+- [bootmanager.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/ld/bootmanager.ld)
+- [programmer.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/ld/programmer.ld)
+- [app.ld](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/ld/app.ld)
+- [stm32f1xx_hal_conf.h](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/config/stm32f1xx_hal_conf.h)
+- [system_stm32f1xx_min.c](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/system/system_stm32f1xx_min.c)
+- [BRINGUP.md](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/BRINGUP.md)
+- [LINKER_GUIDE.md](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/MCU-Framework/targets/stm32f103/LINKER_GUIDE.md)
 
 ## Build
 
@@ -55,8 +55,7 @@ Current example:
 
 If your board uses different pins, update:
 
-- `application/app_main.c`
-- `port/port_uart.c`
+- `targets/stm32f103/config/board_config.h`
 
 ## Quick Test
 

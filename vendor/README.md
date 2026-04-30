@@ -41,7 +41,9 @@ packages because they are:
 
 - `vendor/`
   third-party HAL and CMSIS code
-- `stm32f103/`, `stm32f411ce/`
+- `targets/stm32f103/`, `targets/stm32f411ce/`
   target-specific startup, linker, and system files
+- `mcu/`
+  family-specific backend code owned by this project
 - future `bsp/`
   board-specific code written by the project itself

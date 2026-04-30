@@ -9,96 +9,24 @@
 #include "app_update.h"
 
 #include "boot_config.h"
+#include "board_config.h"
 #include "port_hal.h"
 
 static UART_HandleTypeDef huart1;
 
 static void app_clock_init(void) {
-  RCC_OscInitTypeDef osc = {0};
-  RCC_ClkInitTypeDef clk = {0};
-
-#if defined(STM32F411xE)
-  /*
-   * Prefer the board's external 25 MHz HSE so USART timing follows the
-   * physical oscillator on the module instead of the internal RC clock.
-   */
-  osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  osc.HSEState = RCC_HSE_ON;
-  osc.PLL.PLLState = RCC_PLL_NONE;
-  (void)HAL_RCC_OscConfig(&osc);
-
-  clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-  clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  clk.APB1CLKDivider = RCC_HCLK_DIV1;
-  clk.APB2CLKDivider = RCC_HCLK_DIV1;
-  (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
-#else
-  osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  osc.HSIState = RCC_HSI_ON;
-  osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  osc.PLL.PLLState = RCC_PLL_NONE;
-  (void)HAL_RCC_OscConfig(&osc);
-
-  clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  clk.APB1CLKDivider = RCC_HCLK_DIV1;
-  clk.APB2CLKDivider = RCC_HCLK_DIV1;
-  (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
-#endif
+  board_system_clock_init();
 }
 
 static void app_gpio_init(void) {
-  GPIO_InitTypeDef gpio = {0};
-
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-  gpio.Pin = GPIO_PIN_13;
-  gpio.Mode = GPIO_MODE_OUTPUT_PP;
-#if defined(STM32F103xB)
-  gpio.Speed = GPIO_SPEED_FREQ_LOW;
-#elif defined(STM32F411xE)
-  gpio.Pull = GPIO_NOPULL;
-  gpio.Speed = GPIO_SPEED_FREQ_LOW;
-#endif
-  HAL_GPIO_Init(GPIOC, &gpio);
+  board_led_init();
 }
 
 static void app_uart_init(void) {
-  GPIO_InitTypeDef gpio = {0};
+  board_uart_init_pins();
 
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_USART1_CLK_ENABLE();
-
-  gpio.Pin = GPIO_PIN_9;
-#if defined(STM32F103xB)
-  gpio.Mode = GPIO_MODE_AF_PP;
-  gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-#elif defined(STM32F411xE)
-  gpio.Mode = GPIO_MODE_AF_PP;
-  gpio.Pull = GPIO_PULLUP;
-  gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  gpio.Alternate = GPIO_AF7_USART1;
-#endif
-  HAL_GPIO_Init(GPIOA, &gpio);
-
-  gpio.Pin = GPIO_PIN_10;
-#if defined(STM32F103xB)
-  gpio.Mode = GPIO_MODE_INPUT;
-  gpio.Pull = GPIO_NOPULL;
-#elif defined(STM32F411xE)
-  gpio.Mode = GPIO_MODE_AF_PP;
-  gpio.Pull = GPIO_PULLUP;
-  gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  gpio.Alternate = GPIO_AF7_USART1;
-#endif
-  HAL_GPIO_Init(GPIOA, &gpio);
-
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Instance = BOARD_UART_INSTANCE;
+  huart1.Init.BaudRate = BOARD_UART_BAUDRATE;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -132,12 +60,14 @@ int main(void) {
   app_uart_init();
 
   app_send_text("\r\n=== APP RUNNING ===\r\n");
-  app_send_text("UART: USART1 @ 115200 8N1 (HSE 25 MHz)\r\n");
+  app_send_text("Board: " BOARD_NAME "\r\n");
+  app_send_text("UART: " BOARD_UART_LABEL " @ " BOARD_UART_BAUDRATE_TEXT
+                " 8N1\r\n");
   app_send_text("Command: send 'u' to enter programmer\r\n\r\n");
 
   for (;;) {
     if ((HAL_GetTick() - last_tick) >= 100u) {
-      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_GPIO_TogglePin(BOARD_LED_PORT, BOARD_LED_PIN);
       last_tick = HAL_GetTick();
     }
 

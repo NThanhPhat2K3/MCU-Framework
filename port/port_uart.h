@@ -12,6 +12,12 @@
 
 #define PORT_UART_TIMEOUT_FOREVER 0xFFFFFFFFu
 
+typedef struct {
+  int (*init)(void);
+  int (*read)(uint8_t *buf, uint32_t len, uint32_t timeout_ms);
+  int (*write)(const uint8_t *buf, uint32_t len);
+} port_uart_ops_t;
+
 void port_uart_init(void);
 int port_uart_read(uint8_t *buf, uint32_t len, uint32_t timeout_ms);
 int port_uart_write(const uint8_t *buf, uint32_t len);

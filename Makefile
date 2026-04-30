@@ -62,17 +62,21 @@ SIZE := $(TOOLCHAIN_PREFIX)size
 COMMON_DIRS := \
 	$(PROJECT_ROOT) \
 	$(PROJECT_ROOT)/bootloader/common \
+	$(PROJECT_ROOT)/mcu/stm32 \
+	$(PROJECT_ROOT)/mcu/stm32f1 \
+	$(PROJECT_ROOT)/mcu/stm32f4 \
 	$(PROJECT_ROOT)/port \
 	$(PROJECT_ROOT)/startup \
 	$(PROJECT_ROOT)/application
 
-STM32F103_DIR := $(PROJECT_ROOT)/stm32f103
+TARGETS_DIR := $(PROJECT_ROOT)/targets
+STM32F103_DIR := $(TARGETS_DIR)/stm32f103
 STM32F103_CONFIG_DIR := $(STM32F103_DIR)/config
 STM32F103_STARTUP_DIR := $(STM32F103_DIR)/startup
 STM32F103_SYSTEM_DIR := $(STM32F103_DIR)/system
 STM32F103_LD_DIR := $(STM32F103_DIR)/ld
 
-STM32F411CE_DIR := $(PROJECT_ROOT)/stm32f411ce
+STM32F411CE_DIR := $(TARGETS_DIR)/stm32f411ce
 STM32F411CE_CONFIG_DIR := $(STM32F411CE_DIR)/config
 STM32F411CE_STARTUP_DIR := $(STM32F411CE_DIR)/startup
 STM32F411CE_SYSTEM_DIR := $(STM32F411CE_DIR)/system
@@ -114,6 +118,7 @@ STARTUP_SRCS := \
 	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
 	$(STM32F103_STARTUP_DIR)/startup_stm32f103xb.c \
 	$(STM32F103_SYSTEM_DIR)/system_stm32f1xx_min.c
+PORT_FLASH_BACKEND := $(PROJECT_ROOT)/mcu/stm32f1/port_flash_stm32f1.c
 BOOTMANAGER_LD := $(STM32F103_LD_DIR)/bootmanager.ld
 PROGRAMMER_LD := $(STM32F103_LD_DIR)/programmer.ld
 APP_LD := $(STM32F103_LD_DIR)/app.ld
@@ -150,6 +155,7 @@ STARTUP_SRCS := \
 	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
 	$(STM32F411CE_STARTUP_DIR)/startup_stm32f411xe.c \
 	$(STM32F411CE_SYSTEM_DIR)/system_stm32f4xx_min.c
+PORT_FLASH_BACKEND := $(PROJECT_ROOT)/mcu/stm32f4/port_flash_stm32f4.c
 BOOTMANAGER_LD := $(STM32F411CE_LD_DIR)/bootmanager.ld
 PROGRAMMER_LD := $(STM32F411CE_LD_DIR)/programmer.ld
 APP_LD := $(STM32F411CE_LD_DIR)/app.ld
@@ -224,6 +230,7 @@ BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/bootmanager/main.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
 	$(PROJECT_ROOT)/port/port_system.c \
 	$(STARTUP_SRCS) \
 	$(HAL_SRCS)
@@ -233,6 +240,9 @@ PROGRAMMER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_proto.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
+	$(PORT_FLASH_BACKEND) \
 	$(PROJECT_ROOT)/port/port_flash.c \
 	$(PROJECT_ROOT)/port/port_system.c \
 	$(PROJECT_ROOT)/port/port_uart.c \
@@ -243,6 +253,7 @@ APP_SRCS := \
 	$(PROJECT_ROOT)/application/app_main.c \
 	$(PROJECT_ROOT)/application/app_update.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
 	$(PROJECT_ROOT)/port/port_system.c \
 	$(STARTUP_SRCS) \
 	$(HAL_SRCS)

@@ -1,93 +1,72 @@
 /*
  * File: port_system.c
  * Author: Phat Nguyen
- * Date: 2026-04-29
- * Description: Implements STM32 system startup, reset, address validation, and image handover support.
+ * Date: 2026-04-30
+ * Description: Provides the portable system interface and dispatches calls to
+ * the active MCU backend through a small ops table.
  */
 
 #include "port_system.h"
 
-#include "boot_config.h"
-#include "port_hal.h"
+#include <stddef.h>
 
-static void port_system_clock_init(void)
-{
-    RCC_OscInitTypeDef osc = {0};
-    RCC_ClkInitTypeDef clk = {0};
-
-#if defined(STM32F411xE)
-    /*
-     * Use the board's external 25 MHz clock directly while bring-up/debugging.
-     * That keeps UART timing tied to the real board oscillator instead of the
-     * less accurate HSI internal RC.
-     */
-    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    osc.HSEState = RCC_HSE_ON;
-    osc.PLL.PLLState = RCC_PLL_NONE;
-    (void)HAL_RCC_OscConfig(&osc);
-
-    clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-    clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    clk.APB1CLKDivider = RCC_HCLK_DIV1;
-    clk.APB2CLKDivider = RCC_HCLK_DIV1;
-    (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#if defined(STM32F103xB) || defined(STM32F411xE)
+#include "port_system_stm32.h"
 #else
-    osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-    osc.HSIState = RCC_HSI_ON;
-    osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-    osc.PLL.PLLState = RCC_PLL_NONE;
-    (void)HAL_RCC_OscConfig(&osc);
-
-    clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-    clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    clk.APB1CLKDivider = RCC_HCLK_DIV1;
-    clk.APB2CLKDivider = RCC_HCLK_DIV1;
-    (void)HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0);
+#error Unsupported MCU backend for port_system.c
 #endif
+
+static const port_system_ops_t *g_system_ops;
+
+static const port_system_ops_t *port_system_get_ops(void) {
+  if (g_system_ops != NULL) {
+    return g_system_ops;
+  }
+
+  g_system_ops = port_system_stm32_get_ops();
+  return g_system_ops;
 }
 
-void port_system_init(void)
-{
-    HAL_Init();
-    port_system_clock_init();
+void port_system_init(void) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops != NULL) && (ops->init != NULL)) {
+    ops->init();
+  }
 }
 
-void SysTick_Handler(void)
-{
-    HAL_IncTick();
+void port_system_reset(void) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops != NULL) && (ops->reset != NULL)) {
+    ops->reset();
+  }
 }
 
-void port_system_reset(void)
-{
-    NVIC_SystemReset();
+int port_system_is_flash_addr(uint32_t addr) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops == NULL) || (ops->is_flash_addr == NULL)) {
+    return 0;
+  }
+
+  return ops->is_flash_addr(addr);
 }
 
-int port_system_is_flash_addr(uint32_t addr)
-{
-    return (addr >= FLASH_BASE_ADDR) && (addr < FLASH_END_ADDR);
+int port_system_is_ram_addr(uint32_t addr) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops == NULL) || (ops->is_ram_addr == NULL)) {
+    return 0;
+  }
+
+  return ops->is_ram_addr(addr);
 }
 
-int port_system_is_ram_addr(uint32_t addr)
-{
-    return (addr & 0x2FFE0000u) == 0x20000000u;
-}
+void port_system_prepare_jump(uint32_t vector_addr, uint32_t stack_ptr) {
+  const port_system_ops_t *ops = port_system_get_ops();
 
-void port_system_prepare_jump(uint32_t vector_addr, uint32_t stack_ptr)
-{
-    HAL_DeInit();
-
-    __disable_irq();
-
-    SysTick->CTRL = 0u;
-    SysTick->LOAD = 0u;
-    SysTick->VAL = 0u;
-
-    __set_MSP(stack_ptr);
-    SCB->VTOR = vector_addr;
-
-    __enable_irq();
+  if ((ops != NULL) && (ops->prepare_jump != NULL)) {
+    ops->prepare_jump(vector_addr, stack_ptr);
+  }
 }

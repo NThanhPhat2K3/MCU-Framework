@@ -33,12 +33,19 @@ Chua startup flow dung chung:
 
 ### `port/`
 
-Chua logic phu thuoc MCU:
+Chua interface portable:
 
 - `port_system.*`
 - `port_flash.*`
 - `port_uart.*`
-- `port_hal.h`
+
+### `mcu/`
+
+Chua implementation theo MCU family:
+
+- `mcu/stm32/`
+- `mcu/stm32f1/`
+- `mcu/stm32f4/`
 
 ### `linker/`
 
@@ -61,7 +68,7 @@ Chua firmware chinh:
 - `application/app_main.c`
 - `application/app_update.*`
 
-### `stm32f103/`
+### `targets/stm32f103/`
 
 Chua:
 
@@ -71,7 +78,7 @@ Chua:
 - system init toi thieu
 - tool script thu nghiem
 
-### `stm32f411ce/`
+### `targets/stm32f411ce/`
 
 Chua:
 
@@ -97,9 +104,11 @@ Chua:
 - `startup/startup_portable_cortexm.*`
   - portable o muc reset flow chung
 - `port/*.c`
-  - hien tai la noi chua kha nhieu logic vendor-specific nhat
+  - gio chi nen giu interface va dispatch nhe
+- `mcu/*`
+  - la noi chua vendor-specific backend
 - `application/app_main.c`
-  - da build duoc cho F103 va F411, nhung van chua tach thanh BSP that su
+  - da giam hardcode nho `board_config.h`, nhung van chua thanh BSP that su
 
 ## What changed after adding STM32F411CE
 
@@ -107,18 +116,15 @@ Chua:
   - `stm32f103`
   - `stm32f411ce`
 - `boot_config.h` hien tai map flash theo macro target
-- `port_flash.c` da cho thay su khac nhau giua:
+- `mcu/stm32f1/port_flash_stm32f1.c` da cho thay su khac nhau giua:
   - F1: `page erase`
+- `mcu/stm32f4/port_flash_stm32f4.c` da cho thay su khac nhau giua:
   - F4: `sector erase`
-- `port_uart.c` va `application/app_main.c` da cho thay su khac nhau giua:
-  - F1 GPIO config style
-  - F4 alternate-function GPIO style
+- `board_config.h` giu wiring / clock theo board
+- `mcu/stm32/port_uart_stm32.c` giu HAL UART setup theo family
 
 ## Known architecture limitation
 
-- `port/` hien tai van la mot abstraction mong, chua phan tach thanh:
-  - `mcal/`
-  - `hal/`
-  - `bsp/`
-- `application/app_main.c` van con chua pin/UART/LED mapping theo board
+- `bsp/` van chua tach thanh folder rieng
+- `board_config.h` van dang nam trong target package, chua thanh BSP package doc lap
 - layout hien tai phu hop hoc tap va bring-up, chua phai final production architecture

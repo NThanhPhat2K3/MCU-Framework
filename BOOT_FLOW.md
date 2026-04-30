@@ -61,5 +61,6 @@ uu tien kiem tra:
 1. linker script cua target
 2. `bootloader/common/boot_config.h`
 3. startup file cua target
-4. `port_flash.c`
-5. `port_uart.c`
+4. `mcu/stm32f1/port_flash_stm32f1.c` hoac `mcu/stm32f4/port_flash_stm32f4.c`
+5. `mcu/stm32/port_uart_stm32.c`
+6. `targets/<target>/config/board_config.h`

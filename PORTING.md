@@ -6,6 +6,7 @@ Copy:
 
 - `bootloader/common/`
 - `port/`
+- `mcu/`
 - `bootloader/`
 - `application/`
 - `startup/`
@@ -60,40 +61,34 @@ Neu doi sang:
 - STM32 variant khac
   - thuong chi doi memory map + startup vector file
   - nhung neu khac generation nhu F1 -> F4 thi thuong phai sua them:
-    - `port_flash.c`
-    - `port_uart.c`
-    - `application/app_main.c`
+    - `mcu/stm32f1/*` hoac `mcu/stm32f4/*`
+    - `targets/<target>/config/board_config.h`
 - MSP / Renesas / toolchain khac
   - van nen giu y tuong tach `common sections` va `target memory`
   - nhung file cu the co the khong con la GNU `.ld`
 
-## 4. Port `port/`
+## 4. Port `port/` and `mcu/`
 
-### `port_system.c`
+### `port/`
 
-- `HAL_Init()` / CMSIS init
-- `SystemClock_Config()` toi thieu
-- reset API
-- flash addr check
-- ram addr check
-- jump preparation
+- giu interface chung
+- han che code vendor-specific
 
-### `port_uart.c`
+### `mcu/`
 
-- UART init
-- UART read/write
-
-### `port_flash.c`
-
-- page/sector erase
-- program unit
+- dat backend theo family
+- vi du:
+  - `mcu/stm32/port_system_stm32.c`
+  - `mcu/stm32/port_uart_stm32.c`
+  - `mcu/stm32f1/port_flash_stm32f1.c`
+  - `mcu/stm32f4/port_flash_stm32f4.c`
 
 ## 5. Add target folder
 
 Nen tao 1 target folder rieng theo ten MCU / board, vi du:
 
-- `stm32f103/`
-- `stm32f411ce/`
+- `targets/stm32f103/`
+- `targets/stm32f411ce/`
 
 Trong do nen co:
 
@@ -103,6 +98,13 @@ Trong do nen co:
 - `ld/`
 - `README.md`
 - `BRINGUP.md`
+
+Trong `config/`, nen co:
+
+- `board_config.h`
+  - LED pin
+  - UART pin
+  - board clock source
 
 ## 6. Update build system
 

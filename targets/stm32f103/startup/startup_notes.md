@@ -17,7 +17,7 @@ Phan nay dung chung cho rat nhieu dong chip Cortex-M:
 
 ## 2. Lop rieng cho tung MCU family
 
-- [stm32f103/startup/startup_stm32f103xb.c](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/portable_boot_example/stm32f103/startup/startup_stm32f103xb.c)
+- [targets/stm32f103/startup/startup_stm32f103xb.c](/home/phat/Desktop/00.Developer/01.code/CPM/p1.settings/portable_boot_example/stm32f103/startup/startup_stm32f103xb.c)
 
 Phan nay chi giu:
 

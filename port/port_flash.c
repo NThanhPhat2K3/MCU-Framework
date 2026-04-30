@@ -1,92 +1,56 @@
 /*
  * File: port_flash.c
  * Author: Phat Nguyen
- * Date: 2026-04-29
- * Description: Implements STM32 flash erase and write services for the App region.
+ * Date: 2026-04-30
+ * Description: Provides the portable flash interface and dispatches calls to
+ * the active MCU backend through a small ops table.
  */
 
 #include "port_flash.h"
 
-#include "boot_config.h"
-#include "port_hal.h"
+#include <stddef.h>
 
 #if defined(STM32F103xB)
-#define PORT_FLASH_PAGE_SIZE 0x400u
-#endif
-
-boot_status_t port_flash_erase_app(void)
-{
-    HAL_StatusTypeDef status;
-
-    HAL_FLASH_Unlock();
-
-#if defined(STM32F103xB)
-    FLASH_EraseInitTypeDef erase;
-    uint32_t page_error = 0u;
-
-    erase.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase.PageAddress = APP_ADDR;
-    erase.NbPages = (FLASH_END_ADDR - APP_ADDR) / PORT_FLASH_PAGE_SIZE;
-
-    status = HAL_FLASHEx_Erase(&erase, &page_error);
+#include "port_flash_stm32f1.h"
 #elif defined(STM32F411xE)
-    FLASH_EraseInitTypeDef erase;
-    uint32_t sector_error = 0u;
-
-    erase.TypeErase = FLASH_TYPEERASE_SECTORS;
-    erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-    erase.Sector = FLASH_SECTOR_4;
-    erase.NbSectors = 4u;
-
-    status = HAL_FLASHEx_Erase(&erase, &sector_error);
+#include "port_flash_stm32f4.h"
 #else
-#error Unsupported STM32 family for port_flash.c
+#error Unsupported MCU backend for port_flash.c
 #endif
 
-    HAL_FLASH_Lock();
+static const port_flash_ops_t *g_flash_ops;
 
-    return (status == HAL_OK) ? BOOT_STATUS_OK : BOOT_STATUS_IO_ERROR;
+static const port_flash_ops_t *port_flash_get_ops(void) {
+  if (g_flash_ops != NULL) {
+    return g_flash_ops;
+  }
+
+#if defined(STM32F103xB)
+  g_flash_ops = port_flash_stm32f1_get_ops();
+#elif defined(STM32F411xE)
+  g_flash_ops = port_flash_stm32f4_get_ops();
+#endif
+
+  return g_flash_ops;
 }
 
-boot_status_t port_flash_write(uint32_t addr, const uint8_t *data, uint32_t len)
-{
-    uint32_t i;
+boot_status_t port_flash_erase_app(void) {
+  const port_flash_ops_t *ops = port_flash_get_ops();
 
-    HAL_FLASH_Unlock();
+  if ((ops == NULL) || (ops->erase_app == NULL)) {
+    return BOOT_STATUS_IO_ERROR;
+  }
 
-#if defined(STM32F103xB)
-    for (i = 0; i < len; i += 2u)
-    {
-        uint16_t halfword = data[i];
+  return ops->erase_app();
+}
 
-        if (i + 1u < len)
-        {
-            halfword |= (uint16_t)data[i + 1u] << 8;
-        }
-        else
-        {
-            halfword |= 0xFF00u;
-        }
+boot_status_t port_flash_write(uint32_t addr, const uint8_t *data,
+                               uint32_t len) {
+  const port_flash_ops_t *ops = port_flash_get_ops();
 
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, addr + i, halfword) != HAL_OK)
-        {
-            HAL_FLASH_Lock();
-            return BOOT_STATUS_IO_ERROR;
-        }
-    }
-#elif defined(STM32F411xE)
-    for (i = 0; i < len; ++i)
-    {
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, addr + i, data[i]) != HAL_OK)
-        {
-            HAL_FLASH_Lock();
-            return BOOT_STATUS_IO_ERROR;
-        }
-    }
-#else
-#error Unsupported STM32 family for port_flash.c
-#endif
+  if ((ops == NULL) || (ops->write == NULL)) {
+    return BOOT_STATUS_IO_ERROR;
+  }
 
-    HAL_FLASH_Lock();
-    return BOOT_STATUS_OK;
+  return ops->write(addr, data, len);
 }

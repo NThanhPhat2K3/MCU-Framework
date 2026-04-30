@@ -43,12 +43,13 @@ MCU-Framework/
   make/
   vendor/
   linker/
+  mcu/
   startup/
   port/
   bootloader/
   application/
-  stm32f103/
-  stm32f411ce/
+  targets/stm32f103/
+  targets/stm32f411ce/
   tools/
 ```
 
@@ -63,15 +64,36 @@ MCU-Framework/
 - `application/`
   Main firmware example
 - `port/`
-  MCU-specific flash, UART, and system helpers
-- `stm32f103/`
+  Portable interfaces used by the framework
+- `mcu/`
+  MCU-family backends that implement the port interfaces
+- `targets/stm32f103/`
   STM32F103 target files
-- `stm32f411ce/`
+- `targets/stm32f411ce/`
   STM32F411CE target files
 - `tools/`
   Host-side update tools
 - `vendor/`
   HAL and CMSIS third-party code
+
+## Porting Direction
+
+The current code now starts to separate three layers:
+
+- `bootloader/common/` and `application/`
+  Framework logic
+- `port/`
+  Capability interfaces such as flash, UART, and reset
+- `mcu/`
+  Family-specific implementations, for example the STM32 UART backend
+- `<target>/config/board_config.h`
+  Board wiring and board clock setup
+
+This is the direction for easier porting:
+
+- change board pinout in one board config file
+- keep boot logic unchanged
+- only touch the MCU port layer when moving to a different MCU family
 
 ## Build
 
@@ -152,8 +174,8 @@ If you are new to the repo, read in this order:
 5. `bootloader/bootmanager/main.c`
 6. `bootloader/programmer/main.c`
 7. `application/app_main.c`
-8. `stm32f103/README.md`
-9. `stm32f411ce/README.md`
+8. `targets/stm32f103/README.md`
+9. `targets/stm32f411ce/README.md`
 
 ## Known Gaps
 

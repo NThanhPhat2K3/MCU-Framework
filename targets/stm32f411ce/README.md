@@ -28,8 +28,7 @@ layout.
 
 If your board wiring is different, update:
 
-- `application/app_main.c`
-- `port/port_uart.c`
+- `targets/stm32f411ce/config/board_config.h`
 
 ## Build
 
