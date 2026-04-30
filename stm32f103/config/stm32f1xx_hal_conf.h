@@ -12,6 +12,11 @@
 extern "C" {
 #endif
 
+/* ########################## Module Selection ############################## */
+/*
+ * Keep the layout familiar to the ST template, but only enable the modules
+ * needed by this portable boot example.
+ */
 #define HAL_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
 #define HAL_DMA_MODULE_ENABLED
@@ -27,17 +32,26 @@ extern "C" {
 #include "stm32f1xx_hal_flash.h"
 #include "stm32f1xx_hal_uart.h"
 
+/* ########################## Oscillator Values ############################# */
+/*
+ * The current example also runs from HSI, but keeping these standard clock
+ * constants here makes the config easier to compare with the official ST
+ * template and easier to extend if clock setup changes later.
+ */
 #define HSE_VALUE ((uint32_t)8000000u)
 #define HSE_STARTUP_TIMEOUT ((uint32_t)100u)
 #define HSI_VALUE ((uint32_t)8000000u)
 #define LSI_VALUE ((uint32_t)40000u)
 #define LSE_VALUE ((uint32_t)32768u)
 #define LSE_STARTUP_TIMEOUT ((uint32_t)5000u)
+
+/* ########################### System Configuration ######################### */
 #define VDD_VALUE ((uint32_t)3300u)
 #define TICK_INT_PRIORITY ((uint32_t)0u)
 #define USE_RTOS 0u
 #define PREFETCH_ENABLE 1u
 
+/* ########################## Assert Selection ############################## */
 #define assert_param(expr) ((void)0u)
 
 #ifdef __cplusplus
