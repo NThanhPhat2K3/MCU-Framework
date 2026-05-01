@@ -28,7 +28,7 @@ layout.
 
 If your board wiring is different, update:
 
-- `targets/stm32f411ce/config/board_config.h`
+- `mcu/stm32f4/targets/stm32f411ce/config/board_config.h`
 
 ## Build
 
@@ -46,12 +46,12 @@ make TARGET=stm32f411ce app
 
 ## UART Note
 
-The current STM32F411 example now uses:
+The current STM32F411 example uses:
 
 - `HSE 25 MHz`
 - `USART1 @ 115200 8N1`
 
-This change was important to make UART behavior stable on the tested board.
+This keeps UART timing stable on the tested board.
 
 ## Update Flow
 
@@ -68,3 +68,8 @@ Target app address in the tool:
 ```text
 0x08010000
 ```
+
+## Notes
+
+- This target uses STM32F4 sector erase.
+- The app starts at `0x08010000` to make the sector layout simpler.

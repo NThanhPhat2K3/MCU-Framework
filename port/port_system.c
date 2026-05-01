@@ -43,6 +43,24 @@ void port_system_reset(void) {
   }
 }
 
+uint32_t port_system_get_tick(void) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops == NULL) || (ops->get_tick == NULL)) {
+    return 0u;
+  }
+
+  return ops->get_tick();
+}
+
+void port_system_delay_ms(uint32_t delay_ms) {
+  const port_system_ops_t *ops = port_system_get_ops();
+
+  if ((ops != NULL) && (ops->delay_ms != NULL)) {
+    ops->delay_ms(delay_ms);
+  }
+}
+
 int port_system_is_flash_addr(uint32_t addr) {
   const port_system_ops_t *ops = port_system_get_ops();
 

@@ -1,0 +1,40 @@
+# STM32F103 target settings
+# This file only contains values that are specific to stm32f103.
+
+STM32F103_DIR := $(PROJECT_ROOT)/mcu/stm32f1/targets/stm32f103
+STM32F103_CONFIG_DIR := $(STM32F103_DIR)/config
+STM32F103_STARTUP_DIR := $(STM32F103_DIR)/startup
+STM32F103_SYSTEM_DIR := $(STM32F103_DIR)/system
+STM32F103_LD_DIR := $(STM32F103_DIR)/ld
+
+MCU_FLAGS := -mcpu=cortex-m3 -mthumb
+DEFINES := -DSTM32F103xB
+
+INCLUDES := \
+	$(addprefix -I,$(COMMON_DIRS)) \
+	-I$(STM32F103_CONFIG_DIR) \
+	-I$(STM32F1_HAL_DIR)/Inc \
+	-I$(CMSIS_CORE_DIR)/CMSIS/Core/Include \
+	-I$(CMSIS_DEVICE_F1_DIR)/Include
+
+STARTUP_SRCS := \
+	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
+	$(STM32F103_STARTUP_DIR)/startup_stm32f103xb.c \
+	$(STM32F103_SYSTEM_DIR)/system_stm32f1xx_min.c
+
+PORT_FLASH_BACKEND := $(PROJECT_ROOT)/mcu/stm32f1/port_flash_stm32f1.c
+
+BOOTMANAGER_LD := $(STM32F103_LD_DIR)/bootmanager.ld
+PROGRAMMER_LD := $(STM32F103_LD_DIR)/programmer.ld
+APP_LD := $(STM32F103_LD_DIR)/app.ld
+
+BOOTMANAGER_ADDR := 0x08000000
+PROGRAMMER_ADDR := 0x08004000
+APP_ADDR := 0x08008000
+
+BOOTMANAGER_ERASE_SECTORS := 0 15
+PROGRAMMER_ERASE_SECTORS := 16 31
+APP_ERASE_SECTORS := 32 127
+
+CHECK_COMPONENT_DIRS := $(CMSIS_CORE_DIR) $(CMSIS_DEVICE_F1_DIR) $(STM32F1_HAL_DIR)
+CHECK_COMPONENT_HINT := make vendor-core make vendor-f1

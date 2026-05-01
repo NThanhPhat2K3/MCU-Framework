@@ -1,50 +1,89 @@
 # Porting Guide
 
-## 1. Copy core folders
+This guide explains the simplest way to move the framework to a new board or a
+new MCU family.
 
-Copy:
+## 1. Keep the Core Folders
 
-- `bootloader/common/`
-- `port/`
-- `mcu/`
-- `bootloader/`
+These folders are the reusable core:
+
 - `application/`
-- `startup/`
+- `bootloader/`
 - `linker/`
+- `mcu/`
+- `port/`
+- `startup/`
 
-## 2. Create MCU-family startup vector file
+## 2. Add a New Target Folder
 
-Giu nguyen:
+Create a new folder under the matching MCU family, for example:
+
+- `mcu/stm32f1/targets/my_board/`
+
+Recommended layout:
+
+```text
+mcu/stm32f1/targets/my_board/
+  config/
+  ld/
+  startup/
+  system/
+  README.md
+  BRINGUP.md
+```
+
+Required files:
+
+- `config/board_config.h`
+- one linker script for each image
+- one startup vector file
+- one minimal `SystemInit()` file
+
+## 3. Create `board_config.h`
+
+This file should contain the board-level choices:
+
+- LED pin
+- UART pins
+- UART instance
+- baud rate
+- board clock source
+
+Try to keep board wiring here instead of scattering it across the codebase.
+
+## 4. Create the Startup Vector File
+
+Keep:
 
 - `startup/startup_portable_cortexm.c`
+- `startup/startup_portable_cortexm.h`
 
-Tao moi:
+Add:
 
-- startup vector file rieng cho dong chip
+- a new target-specific vector table file under
+  `mcu/<family>/targets/<target>/startup/`
 
-Viec can sua:
+This target-specific startup file should mainly describe:
 
-- danh sach IRQ
 - `.isr_vector`
+- IRQ names for the MCU
 
-## 3. Provide linker scripts
+## 5. Create Three Linker Scripts
 
-Nen tach thanh 2 lop:
+Each image needs its own linker script:
 
-- 1 file linker common dung chung cho cung toolchain
-- 3 file memory map rieng:
-  - `bootmanager`
-  - `programmer`
-  - `app`
+- `bootmanager.ld`
+- `programmer.ld`
+- `app.ld`
 
-Can co 3 memory map linker:
+The common GNU section layout already lives in:
 
-- `bootmanager`
-- `programmer`
-- `app`
+- `linker/gnu/sections_common.ld`
 
-Phai export:
+Each target linker script should define:
 
+- flash origin and size
+- RAM origin and size
 - `_estack`
 - `_sidata`
 - `_sdata`
@@ -52,101 +91,60 @@ Phai export:
 - `_sbss`
 - `_ebss`
 
-Phai co section:
+It should also include a `.noinit` section.
 
-- `.noinit`
+## 6. Update the MCU Backend Only When Needed
 
-Neu doi sang:
+If the new board uses the same MCU family:
 
-- STM32 variant khac
-  - thuong chi doi memory map + startup vector file
-  - nhung neu khac generation nhu F1 -> F4 thi thuong phai sua them:
-    - `mcu/stm32f1/*` hoac `mcu/stm32f4/*`
-    - `targets/<target>/config/board_config.h`
-- MSP / Renesas / toolchain khac
-  - van nen giu y tuong tach `common sections` va `target memory`
-  - nhung file cu the co the khong con la GNU `.ld`
+- you may only need new linker scripts and a new `board_config.h`
 
-## 4. Port `port/` and `mcu/`
+If the new board uses a different MCU family:
 
-### `port/`
+- update or add files under `mcu/`
 
-- giu interface chung
-- han che code vendor-specific
+Current examples:
 
-### `mcu/`
+- `mcu/stm32/port_system_stm32.c`
+- `mcu/stm32/port_uart_stm32.c`
+- `mcu/stm32f1/port_flash_stm32f1.c`
+- `mcu/stm32f4/port_flash_stm32f4.c`
 
-- dat backend theo family
-- vi du:
-  - `mcu/stm32/port_system_stm32.c`
-  - `mcu/stm32/port_uart_stm32.c`
-  - `mcu/stm32f1/port_flash_stm32f1.c`
-  - `mcu/stm32f4/port_flash_stm32f4.c`
+## 7. Update the Makefile Target Block
 
-## 5. Add target folder
+To add a new target, update the build system with:
 
-Nen tao 1 target folder rieng theo ten MCU / board, vi du:
+- a new `ifeq ($(TARGET),...)` block
+- target-specific include paths
+- target-specific startup and system files
+- target-specific linker scripts
+- target-specific flash layout constants
 
-- `targets/stm32f103/`
-- `targets/stm32f411ce/`
+## 8. Verify in Small Steps
 
-Trong do nen co:
+Recommended order:
 
-- `config/`
-- `startup/`
-- `system/`
-- `ld/`
-- `README.md`
-- `BRINGUP.md`
+1. build `BootManager`
+2. build `Programmer`
+3. build `App`
+4. flash `BootManager`
+5. flash `Programmer`
+6. reset and confirm the board enters `Programmer`
+7. flash or upload `App`
+8. reset and confirm the board enters `App`
 
-Trong `config/`, nen co:
+## 9. Practical Lessons From F103 and F411
 
-- `board_config.h`
-  - LED pin
-  - UART pin
-  - board clock source
+The current two STM32 targets show a useful split:
 
-## 6. Update build system
+- shared boot logic stays almost unchanged
+- linker layout changes per target
+- startup vectors change per target
+- flash backend changes per MCU family
+- board clock and UART wiring change per board
 
-Neu dung `Makefile`, can them:
+That is the main portability rule of this repo:
 
-- block `ifeq ($(TARGET),...)`
-- include path HAL/CMSIS dung target
-- startup source dung target
-- linker script dung target
-- quy uoc noi dat vendor package, vi du `vendor/STM32CubeF1`, `vendor/STM32CubeF4`
-- bien config local dung target, vi du:
-  - `STM32CUBE_F1_DIR`
-  - `STM32CUBE_F4_DIR`
-
-Khong nen dat nguyen STM32Cube package vao `bsp/`.
-Nen tach:
-
-- `vendor/`
-  - HAL/CMSIS/Middleware tu ST
-- `bsp/`
-  - pin map, LED, button, UART wiring rieng cua board
-
-## 7. Verify flow
-
-1. Build `BootManager`
-2. Build `Programmer`
-3. Reset
-4. Neu chua co app -> vao `Programmer`
-5. Nap `App`
-6. Reset -> vao `App`
-
-## 8. Practical note after F103 -> F411 port
-
-Khi them `STM32F411CE`, co 3 bai hoc thuc te:
-
-1. `bootloader/common/` gan nhu giu nguyen
-2. phan startup / linker / flash erase khac nhau ro rang
-3. phan test app de bring-up thuong bi lo ra la chua tach BSP sach
-
-Neu em port tiep sang NXP / Renesas, nen xem dot them F411 nhu mot buoc trung gian:
-
-- F103 -> F411
-  - kiem tra abstraction da du cho khac generation chua
-- F411 -> NXP/Renesas
-  - moi bat dau danh gia can tach them `mcal/hal/bsp` hay chua
+- keep boot logic generic
+- keep board details in the target folder inside the MCU family
+- keep MCU-family details in `mcu/`

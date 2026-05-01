@@ -2,129 +2,130 @@
 
 ## Images
 
-- `BootManager`
-  - image chay dau tien sau reset
-  - quyet dinh boot vao `App` hay `Programmer`
+The framework is split into three firmware images:
 
-- `Programmer`
-  - image chuyen de update firmware
-  - nhan command qua UART
-  - erase / write image `App`
+- `BootManager`: starts first after reset and decides where to jump
+- `Programmer`: receives update data over UART and writes the app region
+- `App`: normal user firmware that can request an update
 
-- `App`
-  - firmware chinh cua san pham
-  - co the yeu cau quay lai `Programmer`
+Each image has its own:
 
-## Layers
+- flash address
+- vector table
+- linker script
+- output directory
+
+## Layer Model
+
+The code is organized in layers so board-specific changes stay local.
 
 ### `bootloader/common/`
 
-Chua logic dung chung cua boot domain:
+Shared boot logic:
 
 - `boot_shared.*`
 - `boot_jump.*`
 - `boot_proto.*`
 
-### `startup/`
+### `application/`
 
-Chua startup flow dung chung:
+Example app logic:
 
-- `startup_portable_cortexm.*`
+- `app_main.c`
+- `app_update.*`
 
 ### `port/`
 
-Chua interface portable:
+Portable interfaces:
 
 - `port_system.*`
-- `port_flash.*`
 - `port_uart.*`
+- `port_flash.*`
+
+This layer describes what the framework needs, but not how a specific MCU does
+it.
 
 ### `mcu/`
 
-Chua implementation theo MCU family:
+MCU-family backends:
 
-- `mcu/stm32/`
-- `mcu/stm32f1/`
-- `mcu/stm32f4/`
+- `mcu/stm32/`: shared STM32 system and UART backends
+- `mcu/stm32f1/`: STM32F1 flash backend
+- `mcu/stm32f4/`: STM32F4 flash backend
+
+This is the only layer that should know STM32 register details.
+
+### `startup/`
+
+Portable Cortex-M startup flow:
+
+- `startup_portable_cortexm.c`
+- `startup_portable_cortexm.h`
+
+### `mcu/<family>/targets/<target>/`
+
+Target-specific files:
+
+- `config/board_config.h`
+- `startup/`
+- `system/`
+- `ld/`
+- target notes and bring-up docs
 
 ### `linker/`
 
-Chua linker common theo toolchain:
+Common linker building blocks:
 
-- `gnu/sections_common.ld`
+- `linker/gnu/sections_common.ld`
 
-### `bootloader/`
+## Porting Strategy
 
-Chua boot domain:
+When moving to a new board in the same MCU family:
 
-- `bootloader/common/*`
-- `bootloader/bootmanager/main.c`
-- `bootloader/programmer/main.c`
+- update `mcu/<family>/targets/<target>/config/board_config.h`
+- update linker scripts if the flash layout changes
+- keep most of `bootloader/common/` and `port/` unchanged
 
-### `application/`
+When moving to a different MCU family:
 
-Chua firmware chinh:
+- keep `bootloader/common/`, `application/`, and `port/`
+- add or update the backend files under `mcu/`
+- add a new target folder under the matching MCU family
 
-- `application/app_main.c`
-- `application/app_update.*`
+## Current STM32 Notes
 
-### `targets/stm32f103/`
+The framework currently supports:
 
-Chua:
+- `stm32f103`
+- `stm32f411ce`
 
-- linker scripts
-- memory map linker rieng cho F103
-- startup vector table rieng cho F103
-- system init toi thieu
-- tool script thu nghiem
+Important differences between them:
 
-### `targets/stm32f411ce/`
+- flash erase model
+  - F1 uses page erase
+  - F4 uses sector erase
+- startup vector file
+- linker memory map
+- board clock setup
 
-Chua:
+Shared STM32 behavior:
 
-- linker scripts
-- memory map linker rieng cho STM32F411CE
-- startup vector table rieng cho STM32F411xE
-- system init toi thieu cho dong F4
-- bring-up note cho Black Pill
+- SysTick-based timekeeping
+- board-level GPIO and UART setup through `board_config.h`
+- LL/CMSIS based system code
 
-## Design goals
+## Design Goals
 
-- de hoc
-- de doc
-- de port
-- it phu thuoc
-- tach logic boot voi logic chip
-- tach `common section layout` khoi `per-image memory map`
+- simple structure
+- clear ownership per folder
+- easy bring-up on a new target
+- minimal direct dependency between boot logic and chip details
 
-## Current portability shape
+## Current Limits
 
-- `bootloader/common/`
-  - dang kha portable giua cac dong Cortex-M
-- `startup/startup_portable_cortexm.*`
-  - portable o muc reset flow chung
-- `port/*.c`
-  - gio chi nen giu interface va dispatch nhe
-- `mcu/*`
-  - la noi chua vendor-specific backend
-- `application/app_main.c`
-  - da giam hardcode nho `board_config.h`, nhung van chua thanh BSP that su
+The project still has a few intentional simplifications:
 
-## What changed after adding STM32F411CE
-
-- Framework da co 2 target song song:
-  - `stm32f103`
-  - `stm32f411ce`
-- `boot_config.h` hien tai map flash theo macro target
-- `mcu/stm32f1/port_flash_stm32f1.c` da cho thay su khac nhau giua:
-  - F1: `page erase`
-- `mcu/stm32f4/port_flash_stm32f4.c` da cho thay su khac nhau giua:
-  - F4: `sector erase`
-- `board_config.h` giu wiring / clock theo board
-- `mcu/stm32/port_uart_stm32.c` giu HAL UART setup theo family
-
-## Known architecture limitation
-
-- `bsp/` van chua tach thanh folder rieng
-- `board_config.h` van dang nam trong target package, chua thanh BSP package doc lap
-- layout hien tai phu hop hoc tap va bring-up, chua phai final production architecture
+- no separate `bsp/` folder yet
+- board config still lives inside each target folder
+- no image authentication or rollback layer
+- documentation and code focus on learning and bring-up first

@@ -4,11 +4,12 @@
 # Description: Builds BootManager, Programmer, and App images without IDE dependency.
 
 PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+MAKE_DIR := $(PROJECT_ROOT)/make
 
 #
 # User-facing build knobs
 #
-# TARGET selects which MCU/board memory map and HAL package to use.
+# TARGET selects which MCU/board memory map and STM32 driver package to use.
 # OUT_ROOT is where all generated files are placed.
 #
 # The vendor package paths below point inside this repo by default.
@@ -38,7 +39,7 @@ CUBE_PROGRAMMER_CONNECT ?= port=SWD mode=UR reset=HWrst
 #
 # The leading '-' means "do not fail if the file does not exist".
 #
--include $(PROJECT_ROOT)/make/config.mk
+-include $(MAKE_DIR)/config.mk
 
 #
 # Toolchain commands
@@ -69,104 +70,22 @@ COMMON_DIRS := \
 	$(PROJECT_ROOT)/startup \
 	$(PROJECT_ROOT)/application
 
-TARGETS_DIR := $(PROJECT_ROOT)/targets
-STM32F103_DIR := $(TARGETS_DIR)/stm32f103
-STM32F103_CONFIG_DIR := $(STM32F103_DIR)/config
-STM32F103_STARTUP_DIR := $(STM32F103_DIR)/startup
-STM32F103_SYSTEM_DIR := $(STM32F103_DIR)/system
-STM32F103_LD_DIR := $(STM32F103_DIR)/ld
-
-STM32F411CE_DIR := $(TARGETS_DIR)/stm32f411ce
-STM32F411CE_CONFIG_DIR := $(STM32F411CE_DIR)/config
-STM32F411CE_STARTUP_DIR := $(STM32F411CE_DIR)/startup
-STM32F411CE_SYSTEM_DIR := $(STM32F411CE_DIR)/system
-STM32F411CE_LD_DIR := $(STM32F411CE_DIR)/ld
-
 #
 # Target selection
 #
 # Each supported target defines:
 # - CPU flags
-# - preprocessor defines expected by STM32 HAL
+# - preprocessor defines expected by STM32 CMSIS device headers
 # - target-specific include paths
-# - HAL source files to compile
 # - startup/system files
 # - one linker script per image
 # - flash addresses for programming
 # - sector ranges for erase commands
 #
 ifeq ($(TARGET),stm32f103)
-MCU_FLAGS := -mcpu=cortex-m3 -mthumb
-DEFINES := -DSTM32F103xB -DUSE_HAL_DRIVER
-INCLUDES := \
-	$(addprefix -I,$(COMMON_DIRS)) \
-	-I$(STM32F103_CONFIG_DIR) \
-	-I$(STM32F1_HAL_DIR)/Inc \
-	-I$(CMSIS_CORE_DIR)/CMSIS/Core/Include \
-	-I$(CMSIS_DEVICE_F1_DIR)/Include
-HAL_SRCS := \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_cortex.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_dma.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_flash.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_flash_ex.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_gpio.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_rcc.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_rcc_ex.c \
-	$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal_uart.c
-STARTUP_SRCS := \
-	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
-	$(STM32F103_STARTUP_DIR)/startup_stm32f103xb.c \
-	$(STM32F103_SYSTEM_DIR)/system_stm32f1xx_min.c
-PORT_FLASH_BACKEND := $(PROJECT_ROOT)/mcu/stm32f1/port_flash_stm32f1.c
-BOOTMANAGER_LD := $(STM32F103_LD_DIR)/bootmanager.ld
-PROGRAMMER_LD := $(STM32F103_LD_DIR)/programmer.ld
-APP_LD := $(STM32F103_LD_DIR)/app.ld
-BOOTMANAGER_ADDR := 0x08000000
-PROGRAMMER_ADDR := 0x08004000
-APP_ADDR := 0x08008000
-BOOTMANAGER_ERASE_SECTORS := 0 15
-PROGRAMMER_ERASE_SECTORS := 16 31
-APP_ERASE_SECTORS := 32 127
-CHECK_COMPONENT_DIRS := $(CMSIS_CORE_DIR) $(CMSIS_DEVICE_F1_DIR) $(STM32F1_HAL_DIR)
-CHECK_COMPONENT_HINT := make vendor-core make vendor-f1
+include $(MAKE_DIR)/target-stm32f103.mk
 else ifeq ($(TARGET),stm32f411ce)
-MCU_FLAGS := -mcpu=cortex-m4 -mthumb
-DEFINES := -DSTM32F411xE -DUSE_HAL_DRIVER
-INCLUDES := \
-	$(addprefix -I,$(COMMON_DIRS)) \
-	-I$(STM32F411CE_CONFIG_DIR) \
-	-I$(STM32F4_HAL_DIR)/Inc \
-	-I$(CMSIS_CORE_DIR)/CMSIS/Core/Include \
-	-I$(CMSIS_DEVICE_F4_DIR)/Include
-HAL_SRCS := \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_cortex.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_dma.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_flash.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_flash_ex.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_gpio.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_pwr.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_pwr_ex.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_rcc.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_rcc_ex.c \
-	$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal_uart.c
-STARTUP_SRCS := \
-	$(PROJECT_ROOT)/startup/startup_portable_cortexm.c \
-	$(STM32F411CE_STARTUP_DIR)/startup_stm32f411xe.c \
-	$(STM32F411CE_SYSTEM_DIR)/system_stm32f4xx_min.c
-PORT_FLASH_BACKEND := $(PROJECT_ROOT)/mcu/stm32f4/port_flash_stm32f4.c
-BOOTMANAGER_LD := $(STM32F411CE_LD_DIR)/bootmanager.ld
-PROGRAMMER_LD := $(STM32F411CE_LD_DIR)/programmer.ld
-APP_LD := $(STM32F411CE_LD_DIR)/app.ld
-BOOTMANAGER_ADDR := 0x08000000
-PROGRAMMER_ADDR := 0x08008000
-APP_ADDR := 0x08010000
-BOOTMANAGER_ERASE_SECTORS := 0
-PROGRAMMER_ERASE_SECTORS := 1
-APP_ERASE_SECTORS := 4 7
-CHECK_COMPONENT_DIRS := $(CMSIS_CORE_DIR) $(CMSIS_DEVICE_F4_DIR) $(STM32F4_HAL_DIR)
-CHECK_COMPONENT_HINT := make vendor-core make vendor-f4
+include $(MAKE_DIR)/target-stm32f411ce.mk
 else
 $(error Unsupported TARGET '$(TARGET)')
 endif
@@ -232,8 +151,7 @@ BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
 	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
 	$(PROJECT_ROOT)/port/port_system.c \
-	$(STARTUP_SRCS) \
-	$(HAL_SRCS)
+	$(STARTUP_SRCS)
 
 PROGRAMMER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/programmer/main.c \
@@ -246,17 +164,17 @@ PROGRAMMER_SRCS := \
 	$(PROJECT_ROOT)/port/port_flash.c \
 	$(PROJECT_ROOT)/port/port_system.c \
 	$(PROJECT_ROOT)/port/port_uart.c \
-	$(STARTUP_SRCS) \
-	$(HAL_SRCS)
+	$(STARTUP_SRCS)
 
 APP_SRCS := \
 	$(PROJECT_ROOT)/application/app_main.c \
 	$(PROJECT_ROOT)/application/app_update.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
 	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
 	$(PROJECT_ROOT)/port/port_system.c \
-	$(STARTUP_SRCS) \
-	$(HAL_SRCS)
+	$(PROJECT_ROOT)/port/port_uart.c \
+	$(STARTUP_SRCS)
 
 .PHONY: all help vendor vendor-core vendor-f1 vendor-f4 \
 	bootmanager programmer app clean print-config check-config check-toolchain \
@@ -284,8 +202,8 @@ help:
 	@echo "  make all           Build all images"
 	@echo "  make clean         Remove build output"
 	@echo "  make vendor-core     Clone/update ARM CMSIS core under vendor/"
-	@echo "  make vendor-f1       Clone/update STM32F1 HAL + CMSIS device under vendor/"
-	@echo "  make vendor-f4       Clone/update STM32F4 HAL + CMSIS device under vendor/"
+	@echo "  make vendor-f1       Clone/update STM32F1 driver package + CMSIS device under vendor/"
+	@echo "  make vendor-f4       Clone/update STM32F4 driver package + CMSIS device under vendor/"
 	@echo "  make vendor          Clone/update all vendor components"
 	@echo "  make print-config  Print current build configuration"
 	@echo "  make flash-bootmanager  Build and flash BootManager via STM32CubeProgrammer"
@@ -337,9 +255,13 @@ vendor-core:
 	@if [ -d "$(CMSIS_CORE_DIR)/.git" ]; then \
 		git -C "$(CMSIS_CORE_DIR)" pull --ff-only; \
 	elif [ -d "$(CMSIS_CORE_DIR)" ]; then \
-		echo "$(CMSIS_CORE_DIR) exists but is not a git repository."; \
-		echo "Remove it or set CMSIS_CORE_DIR to another path."; \
-		exit 1; \
+		if [ -f "$(CMSIS_CORE_DIR)/CMSIS/Core/Include/core_cm4.h" ]; then \
+			echo "Using existing CMSIS core at $(CMSIS_CORE_DIR)"; \
+		else \
+			echo "$(CMSIS_CORE_DIR) exists but is not a valid CMSIS_5 package."; \
+			echo "Remove it or set CMSIS_CORE_DIR to another path."; \
+			exit 1; \
+		fi; \
 	else \
 		git clone --depth 1 https://github.com/ARM-software/CMSIS_5.git "$(CMSIS_CORE_DIR)"; \
 	fi
@@ -348,18 +270,26 @@ vendor-f1:
 	@if [ -d "$(CMSIS_DEVICE_F1_DIR)/.git" ]; then \
 		git -C "$(CMSIS_DEVICE_F1_DIR)" pull --ff-only; \
 	elif [ -d "$(CMSIS_DEVICE_F1_DIR)" ]; then \
-		echo "$(CMSIS_DEVICE_F1_DIR) exists but is not a git repository."; \
-		echo "Remove it or set CMSIS_DEVICE_F1_DIR to another path."; \
-		exit 1; \
+		if [ -f "$(CMSIS_DEVICE_F1_DIR)/Include/stm32f103xb.h" ]; then \
+			echo "Using existing STM32F1 CMSIS device package at $(CMSIS_DEVICE_F1_DIR)"; \
+		else \
+			echo "$(CMSIS_DEVICE_F1_DIR) exists but is not a valid cmsis-device-f1 package."; \
+			echo "Remove it or set CMSIS_DEVICE_F1_DIR to another path."; \
+			exit 1; \
+		fi; \
 	else \
 		git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f1.git "$(CMSIS_DEVICE_F1_DIR)"; \
 	fi
 	@if [ -d "$(STM32F1_HAL_DIR)/.git" ]; then \
 		git -C "$(STM32F1_HAL_DIR)" pull --ff-only; \
 	elif [ -d "$(STM32F1_HAL_DIR)" ]; then \
-		echo "$(STM32F1_HAL_DIR) exists but is not a git repository."; \
-		echo "Remove it or set STM32F1_HAL_DIR to another path."; \
-		exit 1; \
+		if [ -f "$(STM32F1_HAL_DIR)/Inc/stm32f1xx_hal.h" ] && [ -f "$(STM32F1_HAL_DIR)/Src/stm32f1xx_hal.c" ]; then \
+			echo "Using existing STM32F1 HAL package at $(STM32F1_HAL_DIR)"; \
+		else \
+			echo "$(STM32F1_HAL_DIR) exists but is not a valid stm32f1xx-hal-driver package."; \
+			echo "Remove it or set STM32F1_HAL_DIR to another path."; \
+			exit 1; \
+		fi; \
 	else \
 		git clone --depth 1 https://github.com/STMicroelectronics/stm32f1xx-hal-driver.git "$(STM32F1_HAL_DIR)"; \
 	fi
@@ -368,18 +298,26 @@ vendor-f4:
 	@if [ -d "$(CMSIS_DEVICE_F4_DIR)/.git" ]; then \
 		git -C "$(CMSIS_DEVICE_F4_DIR)" pull --ff-only; \
 	elif [ -d "$(CMSIS_DEVICE_F4_DIR)" ]; then \
-		echo "$(CMSIS_DEVICE_F4_DIR) exists but is not a git repository."; \
-		echo "Remove it or set CMSIS_DEVICE_F4_DIR to another path."; \
-		exit 1; \
+		if [ -f "$(CMSIS_DEVICE_F4_DIR)/Include/stm32f411xe.h" ]; then \
+			echo "Using existing STM32F4 CMSIS device package at $(CMSIS_DEVICE_F4_DIR)"; \
+		else \
+			echo "$(CMSIS_DEVICE_F4_DIR) exists but is not a valid cmsis-device-f4 package."; \
+			echo "Remove it or set CMSIS_DEVICE_F4_DIR to another path."; \
+			exit 1; \
+		fi; \
 	else \
 		git clone --depth 1 https://github.com/STMicroelectronics/cmsis-device-f4.git "$(CMSIS_DEVICE_F4_DIR)"; \
 	fi
 	@if [ -d "$(STM32F4_HAL_DIR)/.git" ]; then \
 		git -C "$(STM32F4_HAL_DIR)" pull --ff-only; \
 	elif [ -d "$(STM32F4_HAL_DIR)" ]; then \
-		echo "$(STM32F4_HAL_DIR) exists but is not a git repository."; \
-		echo "Remove it or set STM32F4_HAL_DIR to another path."; \
-		exit 1; \
+		if [ -f "$(STM32F4_HAL_DIR)/Inc/stm32f4xx_hal.h" ] && [ -f "$(STM32F4_HAL_DIR)/Src/stm32f4xx_hal.c" ]; then \
+			echo "Using existing STM32F4 HAL package at $(STM32F4_HAL_DIR)"; \
+		else \
+			echo "$(STM32F4_HAL_DIR) exists but is not a valid stm32f4xx-hal-driver package."; \
+			echo "Remove it or set STM32F4_HAL_DIR to another path."; \
+			exit 1; \
+		fi; \
 	else \
 		git clone --depth 1 https://github.com/STMicroelectronics/stm32f4xx-hal-driver.git "$(STM32F4_HAL_DIR)"; \
 	fi

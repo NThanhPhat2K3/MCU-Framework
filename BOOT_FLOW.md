@@ -1,66 +1,75 @@
 # Boot Flow
 
-## Normal boot
+## Normal Boot
 
 ```text
 Reset
 -> BootManager
--> shared init
+-> initialize shared state
 -> no programmer request
--> App valid
--> jump App
+-> App is valid
+-> jump to App
 ```
 
-## Update request from App
+## Update Request From App
 
 ```text
 App
 -> app_request_programmer_and_reset()
--> shared.boot_request = PROGRAMMER
+-> shared boot request = PROGRAMMER
 -> reset
 -> BootManager
--> jump Programmer
+-> jump to Programmer
 ```
 
-## First bring-up without App
+## Bring-Up Without App
 
 ```text
 Reset
 -> BootManager
--> App invalid
--> Programmer valid
--> jump Programmer
+-> App is not valid
+-> Programmer is valid
+-> jump to Programmer
 ```
 
-## Jump mechanics
+## Image Jump Sequence
+
+`BootManager` does not jump directly to `main()`.
+
+It jumps to the start of the target image:
 
 ```text
-boot_jump_to_image(addr)
--> read MSP at addr + 0
--> read Reset_Handler at addr + 4
+boot_jump_to_image(image_addr)
+-> read initial MSP from image_addr + 0
+-> read Reset_Handler from image_addr + 4
 -> prepare CPU state
--> jump Reset_Handler
--> startup
--> main()
+-> set MSP
+-> set VTOR
+-> jump to Reset_Handler
+-> startup code runs
+-> main() runs
 ```
 
-## Target-specific note
+## Shared Logic vs Target Logic
 
-Flow boot logic giua `stm32f103` va `stm32f411ce` la giong nhau.
+The high-level boot logic is the same for `stm32f103` and `stm32f411ce`.
 
-Khac biet hien tai nam o:
+The target-specific differences are:
 
-- memory map
-- startup vector table
-- flash erase/program implementation
-- UART / GPIO init cho app bring-up
+- flash memory layout
+- startup vector file
+- board clock setup
+- UART and GPIO pin setup
+- flash erase and program backend
 
-Vi vay khi move repo sang workspace moi, neu flow sai o 1 target nhung dung o target kia,
-uu tien kiem tra:
+## Debug Checklist
 
-1. linker script cua target
-2. `bootloader/common/boot_config.h`
-3. startup file cua target
-4. `mcu/stm32f1/port_flash_stm32f1.c` hoac `mcu/stm32f4/port_flash_stm32f4.c`
-5. `mcu/stm32/port_uart_stm32.c`
-6. `targets/<target>/config/board_config.h`
+If one target works and another does not, check these files first:
+
+1. `bootloader/common/boot_config.h`
+2. `targets/<target>/ld/*.ld`
+3. `targets/<target>/startup/*`
+4. `mcu/<family>/targets/<target>/config/board_config.h`
+5. `mcu/stm32/port_system_stm32.c`
+6. `mcu/stm32/port_uart_stm32.c`
+7. the target flash backend under `mcu/stm32f1/` or `mcu/stm32f4/`
