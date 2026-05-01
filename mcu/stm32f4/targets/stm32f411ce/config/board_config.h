@@ -23,13 +23,22 @@
 #define BOARD_UART_BAUDRATE_TEXT "115200"
 #define BOARD_UART_LABEL "USART1"
 #define BOARD_SYSCLK_HZ 25000000u
+#define BOARD_FLASH_LATENCY LL_FLASH_LATENCY_0
 
 static inline void board_system_clock_init(void) {
   /*
-   * This module is populated with a 25 MHz HSE source. Using that clock
-   * directly keeps UART timing aligned with the real board oscillator.
+   * This target is configured to run directly from HSE without a PLL step.
+   * Flash latency here controls instruction/data reads from internal flash.
+   * It is not related to firmware erase/program operations.
    */
-  LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+  LL_FLASH_SetLatency(BOARD_FLASH_LATENCY);
+  while (LL_FLASH_GetLatency() != BOARD_FLASH_LATENCY) {
+  }
+
+  /*
+   * Prefetch lets the flash interface fetch upcoming instructions early,
+   * which helps sequential code execution run more smoothly.
+   */
   LL_FLASH_EnablePrefetch();
 
   LL_RCC_HSE_Enable();
@@ -64,14 +73,19 @@ static inline void board_uart_init_pins(void) {
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
 
+  /*
+   * Keep TX at the UART idle-high level while USART is still being configured.
+   * On the tested board this avoids a stray start bit and a garbage byte at
+   * boot.
+   */
+  LL_GPIO_SetOutputPin(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN);
   LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
-                     LL_GPIO_MODE_ALTERNATE);
+                     LL_GPIO_MODE_OUTPUT);
   LL_GPIO_SetPinOutputType(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
                            LL_GPIO_OUTPUT_PUSHPULL);
   LL_GPIO_SetPinPull(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN, LL_GPIO_PULL_UP);
   LL_GPIO_SetPinSpeed(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
                       LL_GPIO_SPEED_FREQ_VERY_HIGH);
-  LL_GPIO_SetAFPin_8_15(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN, LL_GPIO_AF_7);
 
   LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_RX_PIN,
                      LL_GPIO_MODE_ALTERNATE);
@@ -81,6 +95,12 @@ static inline void board_uart_init_pins(void) {
   LL_GPIO_SetPinSpeed(BOARD_UART_GPIO_PORT, BOARD_UART_RX_PIN,
                       LL_GPIO_SPEED_FREQ_VERY_HIGH);
   LL_GPIO_SetAFPin_8_15(BOARD_UART_GPIO_PORT, BOARD_UART_RX_PIN, LL_GPIO_AF_7);
+}
+
+static inline void board_uart_connect_tx_pin(void) {
+  LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
+                     LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN, LL_GPIO_AF_7);
 }
 
 #endif /* BOARD_CONFIG_H */

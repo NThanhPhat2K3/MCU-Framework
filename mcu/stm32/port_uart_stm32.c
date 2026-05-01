@@ -23,8 +23,14 @@ static int port_uart_stm32_init(void) {
 #if defined(USART_CR1_OVER8)
   LL_USART_SetOverSampling(BOARD_UART_INSTANCE, LL_USART_OVERSAMPLING_16);
 #endif
-  PORT_USART_SET_BAUD(BOARD_UART_INSTANCE, SystemCoreClock, BOARD_UART_BAUDRATE);
+  PORT_USART_SET_BAUD(BOARD_UART_INSTANCE, SystemCoreClock,
+                      BOARD_UART_BAUDRATE);
   LL_USART_Enable(BOARD_UART_INSTANCE);
+#if defined(USART_ISR_TEACK)
+  while (LL_USART_IsActiveFlag_TEACK(BOARD_UART_INSTANCE) == 0U) {
+  }
+#endif
+  board_uart_connect_tx_pin();
 
   return 0;
 }

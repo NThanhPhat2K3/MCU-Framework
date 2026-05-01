@@ -59,16 +59,26 @@ static inline void board_uart_init_pins(void) {
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA |
                            LL_APB2_GRP1_PERIPH_USART1);
 
+  /*
+   * Keep TX high while USART is still being configured to avoid a spurious
+   * start bit during bring-up.
+   */
   LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
-                     LL_GPIO_MODE_ALTERNATE);
+                     LL_GPIO_MODE_OUTPUT);
   LL_GPIO_SetPinOutputType(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
                            LL_GPIO_OUTPUT_PUSHPULL);
   LL_GPIO_SetPinSpeed(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
                       LL_GPIO_SPEED_FREQ_HIGH);
+  LL_GPIO_SetOutputPin(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN);
 
   LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_RX_PIN,
                      LL_GPIO_MODE_INPUT);
   LL_GPIO_SetPinPull(BOARD_UART_GPIO_PORT, BOARD_UART_RX_PIN, LL_GPIO_PULL_UP);
+}
+
+static inline void board_uart_connect_tx_pin(void) {
+  LL_GPIO_SetPinMode(BOARD_UART_GPIO_PORT, BOARD_UART_TX_PIN,
+                     LL_GPIO_MODE_ALTERNATE);
 }
 
 #endif /* BOARD_CONFIG_H */

@@ -149,8 +149,10 @@ BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/bootmanager/main.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
 	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
 	$(PROJECT_ROOT)/port/port_system.c \
+	$(PROJECT_ROOT)/port/port_uart.c \
 	$(STARTUP_SRCS)
 
 PROGRAMMER_SRCS := \
