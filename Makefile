@@ -3,6 +3,45 @@
 # Date: 2026-04-29
 # Description: Builds BootManager, Programmer, and App images without IDE dependency.
 
+# -----------------------------------------------------------------------------
+# Beginner reading guide
+# -----------------------------------------------------------------------------
+# Read this file from top to bottom in this order:
+#
+# 1. User configuration
+#    TARGET, OUT_ROOT, toolchain path, vendor paths
+#
+# 2. Target package
+#    make/target-*.mk supplies:
+#    - CPU flags
+#    - include paths
+#    - startup/system files
+#    - linker scripts
+#    - flash addresses
+#
+# 3. Source groups
+#    Shared source bundles are defined first, then each firmware image becomes
+#    just:
+#    - image-specific files
+#    - shared runtime files
+#    - target startup files
+#
+# 4. Public commands
+#    make app
+#    make programmer
+#    make bootmanager
+#    make all
+#    make flash-*
+#
+# 5. Internal build pipeline
+#    public target
+#    -> image trampoline
+#    -> output folder selection
+#    -> compile objects
+#    -> link ELF
+#    -> create bin/hex/lst
+# -----------------------------------------------------------------------------
+
 PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 MAKE_DIR := $(PROJECT_ROOT)/make
 
@@ -56,9 +95,8 @@ SIZE := $(TOOLCHAIN_PREFIX)size
 #
 # Include folders shared by all firmware images
 #
-# Every image needs the common boot headers, port layer, startup code,
-# and application headers. Target-specific config folders are added
-# later inside each TARGET block.
+# Target-specific include folders are appended later by the selected
+# make/target-*.mk file.
 #
 COMMON_DIRS := \
 	$(PROJECT_ROOT) \
@@ -93,15 +131,19 @@ endif
 #
 # Common compiler and linker flags
 #
-# -ffunction-sections/-fdata-sections put each function/data item into
-# its own section. The linker can then remove unused code with
-# --gc-sections.
+# COMMON_CPPFLAGS:
+# - CPU flags from the selected target
+# - warnings
+# - dependency generation
+# - include folders
 #
-# -MMD/-MP generate dependency files beside object files, so editing a
-# header automatically rebuilds the right sources on the next make run.
+# COMMON_CFLAGS / COMMON_CXXFLAGS:
+# - language standard
+# - C++ is kept "small firmware friendly"
 #
-# nano.specs/nosys.specs keep the firmware small and avoid depending on
-# an operating system syscall layer.
+# COMMON_LDFLAGS:
+# - garbage collect unused sections
+# - use small newlib and no host OS syscall layer
 #
 COMMON_CPPFLAGS := \
 	$(MCU_FLAGS) \
@@ -135,47 +177,60 @@ COMMON_LDFLAGS := \
 	-specs=nosys.specs
 
 #
+# Shared source groups
+#
+# These groups exist only to make the image lists easier to read.
+#
+BOOT_COMMON_SRCS := \
+	$(PROJECT_ROOT)/bootloader/common/boot_shared.c
+
+RUNTIME_PORT_SRCS := \
+	$(PROJECT_ROOT)/port/port_system.c \
+	$(PROJECT_ROOT)/port/port_uart.c
+
+STM32_BACKEND_SRCS := \
+	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
+	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c
+
+#
 # Firmware image source lists
 #
-# This framework builds three independent images:
-# - BootManager: runs first after reset and selects App/Programmer
-# - Programmer: receives update packets and writes the App region
-# - App: normal user firmware plus a request path back to Programmer
+# The project builds three separate images:
+# - BootManager: reset entry, decides where to go next
+# - Programmer: receives update data and writes App flash
+# - App: normal firmware that can request Programmer mode
 #
-# Each image gets its own ELF/BIN/HEX/MAP/LST output and its own linker
-# script, because each image lives at a different flash address.
+# Each image has:
+# - its own source list
+# - its own linker script
+# - its own output folder
+# - its own vector-table base address
 #
 BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/bootmanager/main.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
-	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
-	$(PROJECT_ROOT)/port/port_system.c \
-	$(PROJECT_ROOT)/port/port_uart.c \
+	$(BOOT_COMMON_SRCS) \
+	$(STM32_BACKEND_SRCS) \
+	$(RUNTIME_PORT_SRCS) \
 	$(STARTUP_SRCS)
 
 PROGRAMMER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/programmer/main.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
 	$(PROJECT_ROOT)/bootloader/common/boot_proto.c \
-	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
+	$(BOOT_COMMON_SRCS) \
+	$(STM32_BACKEND_SRCS) \
 	$(PORT_FLASH_BACKEND) \
 	$(PROJECT_ROOT)/port/port_flash.c \
-	$(PROJECT_ROOT)/port/port_system.c \
-	$(PROJECT_ROOT)/port/port_uart.c \
+	$(RUNTIME_PORT_SRCS) \
 	$(STARTUP_SRCS)
 
 APP_SRCS := \
 	$(PROJECT_ROOT)/application/app_main.c \
 	$(PROJECT_ROOT)/application/app_update.c \
-	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_uart_stm32.c \
-	$(PROJECT_ROOT)/mcu/stm32/port_system_stm32.c \
-	$(PROJECT_ROOT)/port/port_system.c \
-	$(PROJECT_ROOT)/port/port_uart.c \
+	$(BOOT_COMMON_SRCS) \
+	$(STM32_BACKEND_SRCS) \
+	$(RUNTIME_PORT_SRCS) \
 	$(STARTUP_SRCS)
 
 .PHONY: all help vendor vendor-core vendor-f1 vendor-f4 \
@@ -187,7 +242,8 @@ APP_SRCS := \
 #
 # High-level entry points
 #
-# These are the commands humans normally type, for example:
+# These are the commands humans normally type.
+# Example:
 #   make TARGET=stm32f411ce all
 #   make TARGET=stm32f411ce flash-all
 #   make TARGET=stm32f411ce erase-app
@@ -246,10 +302,9 @@ print-config:
 #
 # Vendor package fetch targets
 #
-# These clone the official ST repositories into vendor/. The packages
-# are intentionally git-ignored because they are large third-party code.
-# Keeping them under vendor/ gives Windows and Linux the same project
-# layout after the first clone.
+# These clone the official packages into vendor/.
+# They are not committed because they are large third-party dependencies.
+# After one successful clone, every machine sees the same folder layout.
 #
 vendor: vendor-core vendor-f1 vendor-f4
 
@@ -327,9 +382,13 @@ vendor-f4:
 #
 # Environment checks
 #
-# check-config validates the build inputs.
-# check-cube-programmer validates only flash/erase tooling, so building
-# can still work on a machine that does not have an ST-LINK connected.
+# check-config:
+# - compiler exists
+# - required vendor folders for the selected target exist
+#
+# check-cube-programmer:
+# - only needed for flash/erase targets
+# - normal builds should still work without an ST-LINK connected
 #
 check-toolchain:
 	@if ! command -v $(CC) >/dev/null 2>&1; then \
@@ -357,35 +416,37 @@ check-cube-programmer:
 #
 # Per-image public build targets
 #
-# The IMAGE variables are target-specific variables. For example, when
-# make enters the bootmanager target, IMAGE becomes "bootmanager" and
-# IMAGE_SRCS becomes BOOTMANAGER_SRCS.
+# Each public image target sets a small "image context":
+# - IMAGE: image name used in output filenames/folders
+# - IMAGE_SRCS: source files that belong to that image
+# - IMAGE_LD: linker script that places that image in flash
+# - IMAGE_DEFINES: one define that lets startup code know which image it is
+#
+# After that, all three images share the same internal pipeline.
 #
 bootmanager: IMAGE := bootmanager
 bootmanager: IMAGE_SRCS := $(BOOTMANAGER_SRCS)
 bootmanager: IMAGE_LD := $(BOOTMANAGER_LD)
+bootmanager: IMAGE_DEFINES := -DIMAGE_BOOTMANAGER
 bootmanager: check-config bootmanager-image
 
 programmer: IMAGE := programmer
 programmer: IMAGE_SRCS := $(PROGRAMMER_SRCS)
 programmer: IMAGE_LD := $(PROGRAMMER_LD)
+programmer: IMAGE_DEFINES := -DIMAGE_PROGRAMMER
 programmer: check-config programmer-image
 
 app: IMAGE := app
 app: IMAGE_SRCS := $(APP_SRCS)
 app: IMAGE_LD := $(APP_LD)
+app: IMAGE_DEFINES := -DIMAGE_APP
 app: check-config app-image
 
 #
 # Flash and erase targets
 #
-# STM32CubeProgrammer can program a raw .bin when we also pass the
-# destination address. That is why each image command includes both:
-#   image.bin + image start address
-#
-# Erase commands use target-specific sector ranges from the TARGET block.
-# erase-all is useful before a clean bring-up, while erase-app is useful
-# when testing only the update/application region.
+# Flash commands write a raw .bin plus its destination address.
+# Erase commands use target-specific sectors/pages supplied by the target file.
 #
 flash-bootmanager: bootmanager check-cube-programmer
 	$(CUBE_PROGRAMMER_CLI) -c $(CUBE_PROGRAMMER_CONNECT) -d $(OUT_ROOT)/$(TARGET)/bootmanager/bootmanager.bin $(BOOTMANAGER_ADDR) -v -rst
@@ -416,16 +477,29 @@ erase-app: check-cube-programmer
 #
 # Generic image build trampoline
 #
-# This indirection lets bootmanager/programmer/app share one build rule.
-# The first make call selects IMAGE/IMAGE_SRCS/IMAGE_LD, then the second
-# call sets IMAGE_OUT so object files and outputs go into:
-#   out/<target>/<image>/
+# Why the extra recursion?
+#
+# Public target:
+#   make app
+#
+# Stage 1:
+#   choose image context (name, sources, linker script, defines)
+#
+# Stage 2:
+#   compute output folder: out/<target>/<image>/
+#
+# Stage 3:
+#   compile -> link -> create bin/hex/lst
+#
+# This keeps one shared build pipeline instead of copy/pasting nearly the
+# same rules three times.
 #
 bootmanager-image programmer-image app-image:
 	@$(MAKE) --no-print-directory \
 		IMAGE=$(IMAGE) \
 		IMAGE_SRCS='$(IMAGE_SRCS)' \
 		IMAGE_LD='$(IMAGE_LD)' \
+		IMAGE_DEFINES='$(IMAGE_DEFINES)' \
 		image-internal
 
 image-internal:
@@ -434,6 +508,7 @@ image-internal:
 		IMAGE=$(IMAGE) \
 		IMAGE_SRCS='$(IMAGE_SRCS)' \
 		IMAGE_LD='$(IMAGE_LD)' \
+		IMAGE_DEFINES='$(IMAGE_DEFINES)' \
 		IMAGE_OUT=$(OUT_ROOT)/$(TARGET)/$(IMAGE) \
 		image-link
 
@@ -443,20 +518,21 @@ image-link: $(IMAGE_OUT)/$(IMAGE).elf $(IMAGE_OUT)/$(IMAGE).bin $(IMAGE_OUT)/$(I
 #
 # Object file mapping
 #
-# Project sources live under PROJECT_ROOT, so they keep their relative
-# folder structure inside obj/.
+# Project files keep their folder structure under:
+#   out/<target>/<image>/obj/...
 #
-# STM32 HAL sources usually live outside the repo, so they are placed
-# under obj/vendor/ using only the source file name.
+# Vendor files that live outside PROJECT_ROOT are placed under:
+#   out/<target>/<image>/obj/vendor/
 #
-# vpath tells make where to find those external vendor source files when
-# a pattern rule only receives "stm32f4xx_hal.c".
+# This keeps generated object paths predictable and easy to browse.
 #
 IMAGE_OBJS = \
 	$(patsubst $(PROJECT_ROOT)/%.c,$(IMAGE_OUT)/obj/%.o,$(filter $(PROJECT_ROOT)/%.c,$(filter %.c,$(IMAGE_SRCS)))) \
 	$(patsubst $(PROJECT_ROOT)/%.cpp,$(IMAGE_OUT)/obj/%.o,$(filter $(PROJECT_ROOT)/%.cpp,$(filter %.cpp,$(IMAGE_SRCS)))) \
 	$(foreach src,$(filter-out $(PROJECT_ROOT)/%,$(filter %.c,$(IMAGE_SRCS))),$(IMAGE_OUT)/obj/vendor/$(notdir $(src:.c=.o))) \
 	$(foreach src,$(filter-out $(PROJECT_ROOT)/%,$(filter %.cpp,$(IMAGE_SRCS))),$(IMAGE_OUT)/obj/vendor/$(notdir $(src:.cpp=.o)))
+IMAGE_CFLAGS = $(COMMON_CFLAGS) $(IMAGE_DEFINES)
+IMAGE_CXXFLAGS = $(COMMON_CXXFLAGS) $(IMAGE_DEFINES)
 IMAGE_DEPS = $(IMAGE_OBJS:.o=.d)
 vpath %.c $(sort $(dir $(filter-out $(PROJECT_ROOT)/%,$(filter %.c,$(IMAGE_SRCS)))))
 vpath %.cpp $(sort $(dir $(filter-out $(PROJECT_ROOT)/%,$(filter %.cpp,$(IMAGE_SRCS)))))
@@ -464,11 +540,12 @@ vpath %.cpp $(sort $(dir $(filter-out $(PROJECT_ROOT)/%,$(filter %.cpp,$(IMAGE_S
 #
 # Link and artifact generation
 #
-# The ELF is the main linked firmware image.
-# objcopy then derives:
-# - .bin for raw address-based flashing
-# - .hex for address-aware flashing or inspection
-# objdump creates a .lst file for reading sections/disassembly.
+# Final artifacts per image:
+# - .elf : linked firmware
+# - .bin : raw binary for direct flashing
+# - .hex : Intel HEX
+# - .lst : section + disassembly listing
+# - .map : linker map
 #
 $(IMAGE_OUT)/$(IMAGE).elf: $(IMAGE_OBJS)
 	@mkdir -p $(dir $@)
@@ -486,38 +563,38 @@ $(IMAGE_OUT)/$(IMAGE).lst: $(IMAGE_OUT)/$(IMAGE).elf
 #
 # Compile rules
 #
-# These rules compile C/C++ into object files. The mkdir line creates
-# the destination folder before invoking the compiler.
+# IMAGE_CFLAGS / IMAGE_CXXFLAGS = common flags + one image-specific define.
+# That image-specific define is mainly used by startup code to select the
+# correct vector-table base.
 #
 $(IMAGE_OUT)/obj/%.o: $(PROJECT_ROOT)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_CFLAGS) -c $< -o $@
+	$(CC) $(IMAGE_CFLAGS) -c $< -o $@
 
 $(IMAGE_OUT)/obj/%.o: $(PROJECT_ROOT)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(COMMON_CXXFLAGS) -c $< -o $@
+	$(CXX) $(IMAGE_CXXFLAGS) -c $< -o $@
 
 $(IMAGE_OUT)/obj/vendor/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(COMMON_CFLAGS) -c $< -o $@
+	$(CC) $(IMAGE_CFLAGS) -c $< -o $@
 
 $(IMAGE_OUT)/obj/vendor/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(COMMON_CXXFLAGS) -c $< -o $@
+	$(CXX) $(IMAGE_CXXFLAGS) -c $< -o $@
 
 #
 # Include generated dependency files
 #
-# Missing dependency files are OK on the first build. After the first
-# successful compile, they help make rebuild only what changed.
+# Safe on the first build because missing .d files are ignored.
 #
 -include $(IMAGE_DEPS)
 
 #
 # Cleanup
 #
-# All generated files live under OUT_ROOT, so clean can safely remove
-# that folder without touching source code.
+# All generated files live under OUT_ROOT, so clean can remove that folder
+# without touching source code.
 #
 clean:
 	rm -rf $(OUT_ROOT)

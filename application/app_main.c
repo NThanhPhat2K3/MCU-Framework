@@ -26,18 +26,17 @@ static void app_send_text(const char *text) {
 }
 
 static void app_print_banner(void) {
-  app_send_text("\r\n[ APP Entry ]\r\n");
-  app_send_text("Board: " BOARD_NAME "\r\n");
-  app_send_text("UART: " BOARD_UART_LABEL " @ " BOARD_UART_BAUDRATE_TEXT
+  app_send_text("\r\n[ app entry ]\r\n");
+  app_send_text("board: " BOARD_NAME "\r\n");
+  app_send_text("uart: " BOARD_UART_LABEL " @ " BOARD_UART_BAUDRATE_TEXT
                 " 8N1\r\n");
+  app_send_text("clock: " BOARD_SYSCLK_HZ_TEXT " Hz\r\n");
   app_send_text("Command: send 'u' for programmer\r\n\r\n");
 }
 
 int main(void) {
   uint8_t rx_byte;
   uint32_t last_tick = 0u;
-
-  SCB->VTOR = APP_ADDR;
 
   port_system_init();
   board_led_init();

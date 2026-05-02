@@ -7,13 +7,33 @@
 
 #include "startup_portable_cortexm.h"
 
+#include "boot_config.h"
+
+#if defined(STM32F103xB) || defined(STM32F411xE)
+#include "port_stm32.h"
+#endif
+
 __attribute__((weak)) void startup_low_level_init(void)
 {
     /*
-     * Default early hook intentionally does nothing.
-     * Generic startup cannot assume that SystemInit() is safe before .data/.bss
-     * have been initialized on every target.
+     * Generic startup keeps image-specific vector-table selection here so
+     * application code can stay unaware of VTOR details.
+     *
+     * For the normal boot flow, BootManager already programs VTOR before
+     * jumping into Programmer or App. Reprogramming it here is harmless.
+     *
+     * For standalone bring-up, each image also becomes self-contained because
+     * its own Reset_Handler points VTOR back at that image's vector table.
      */
+#if defined(STM32F103xB) || defined(STM32F411xE)
+#if defined(IMAGE_BOOTMANAGER)
+    SCB->VTOR = BOOT_MANAGER_ADDR;
+#elif defined(IMAGE_PROGRAMMER)
+    SCB->VTOR = PROGRAMMER_ADDR;
+#elif defined(IMAGE_APP)
+    SCB->VTOR = APP_ADDR;
+#endif
+#endif
 }
 
 void startup_copy_data_init(void)

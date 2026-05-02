@@ -25,7 +25,7 @@ static void bootmanager_send_text(const char *text) {
 }
 
 static void bootmanager_print_banner(void) {
-  bootmanager_send_text("\r\n[ BOOT MANAGER ]\r\n");
+  bootmanager_send_text("\r\n[ boot manager entry ]\r\n");
 }
 
 static boot_status_t bootmanager_try_programmer_request(boot_shared_t *shared) {
