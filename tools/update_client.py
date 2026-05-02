@@ -23,8 +23,50 @@ class UpdateConfig:
     timeout: float = 0.3
 
 
+def _parse_value(text: str) -> int | str:
+    value = text.strip()
+
+    if value.startswith("0x") or value.startswith("0X"):
+        try:
+            return int(value, 16)
+        except ValueError:
+            return value
+
+    try:
+        return int(value, 10)
+    except ValueError:
+        return value
+
+
+def parse_info_response(text: str) -> dict[str, int | str]:
+    info: dict[str, int | str] = {}
+
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    for line in lines:
+        if line == "OK INFO":
+            continue
+
+        if ":" not in line:
+            continue
+
+        key, value = line.split(":", 1)
+        info[key.strip()] = _parse_value(value)
+
+    return info
+
+
 def _normalize_response(response: bytes) -> str:
     return response.decode(errors="ignore").replace("\r", "").strip()
+
+
+def _contains_programmer_banner(text: str) -> bool:
+    upper_text = text.upper()
+    return ("[ PROGRAMMER ENTRY ]" in upper_text) or ("OK INFO" in upper_text)
+
+
+def _contains_app_banner(text: str) -> bool:
+    upper_text = text.upper()
+    return ("APP RUNNING" in upper_text) or ("[ APP ENTRY ]" in upper_text)
 
 
 def _check_response(text: str, expected_prefix: str | None = None) -> None:
@@ -46,6 +88,24 @@ def _read_text(port: serial.Serial) -> str:
     return _normalize_response(port.read_all())
 
 
+def _read_until_idle(port: serial.Serial, timeout_s: float, quiet_s: float = 0.2) -> bytes:
+    deadline = time.time() + timeout_s
+    idle_deadline: float | None = None
+    buf = b""
+
+    while time.time() < deadline:
+        chunk = port.read(port.in_waiting or 1)
+        if chunk:
+            buf += chunk
+            idle_deadline = time.time() + quiet_s
+            continue
+
+        if buf and idle_deadline is not None and time.time() >= idle_deadline:
+            break
+
+    return buf
+
+
 def _request_programmer_from_app(port: serial.Serial, log_fn: Callable[[str], None], timeout_s: float = 3.0) -> bool:
     deadline = time.time() + timeout_s
 
@@ -61,11 +121,11 @@ def _request_programmer_from_app(port: serial.Serial, log_fn: Callable[[str], No
     while time.time() < deadline:
         text = _read_text(port)
         if text:
-            # Accumulate text across reads so a split "GO PROGRA" / "M"
-            # still matches "PROGRAMMER" on the next iteration.
+            # Accumulate text across reads so split boot banners are still
+            # detected after the reset sequence completes.
             accumulated += ("\n" + text) if accumulated else text
             log_fn(text)
-            if "PROGRAMMER" in accumulated:
+            if _contains_programmer_banner(accumulated):
                 return True
         time.sleep(0.1)
 
@@ -81,10 +141,10 @@ def _wait_for_programmer(port: serial.Serial, log_fn: Callable[[str], None], tim
         if text:
             log_fn(text)
 
-            if "PROGRAMMER" in text:
+            if _contains_programmer_banner(text):
                 return
 
-            if "APP RUNNING" in text:
+            if _contains_app_banner(text):
                 app_mode_seen = True
                 if _request_programmer_from_app(port, log_fn):
                     return
@@ -94,9 +154,9 @@ def _wait_for_programmer(port: serial.Serial, log_fn: Callable[[str], None], tim
             log_fn(response)
             if "OK INFO" in response:
                 return
-            if "PROGRAMMER" in response:
+            if _contains_programmer_banner(response):
                 return
-            if "APP RUNNING" in response:
+            if _contains_app_banner(response):
                 app_mode_seen = True
                 if _request_programmer_from_app(port, log_fn):
                     return
@@ -128,20 +188,28 @@ def send_packet(port: serial.Serial, cmd: bytes, data: bytes = b"", timeout_s: f
     port.write(packet)
     port.flush()
 
-    # Read with a deadline instead of a fixed 50ms sleep.  The MCU
-    # programmer blocks until the erase/write completes, which on
-    # STM32F4 can be several seconds for a full sector erase.
-    deadline = time.time() + timeout_s
-    buf = b""
-    while time.time() < deadline:
-        chunk = port.read(port.in_waiting or 1)
-        if chunk:
-            buf += chunk
-        # If we already have a complete response line (ending with \n)
-        # we can stop early.
-        if b"\n" in buf:
-            break
-    return buf
+    # Read with a deadline instead of a fixed sleep. The MCU can emit
+    # multi-line text responses, so we wait until the UART stays quiet
+    # for a short period before considering the response complete.
+    return _read_until_idle(port, timeout_s=timeout_s, quiet_s=0.2)
+
+
+def query_programmer_info(
+    config: UpdateConfig,
+    log: Callable[[str], None] | None = None,
+) -> dict[str, int | str]:
+    log_fn = log or (lambda message: None)
+
+    with serial.Serial(config.port, config.baud, timeout=config.timeout) as port:
+        time.sleep(0.8)
+        _wait_for_programmer(port, log_fn)
+        port.reset_input_buffer()
+
+        response = _normalize_response(send_packet(port, b"I"))
+        if response:
+            log_fn(response)
+        _check_response(response, "OK INFO")
+        return parse_info_response(response)
 
 
 def flash_image(

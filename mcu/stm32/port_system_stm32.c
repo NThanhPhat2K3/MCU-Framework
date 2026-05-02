@@ -64,7 +64,9 @@ static void port_system_stm32_prepare_jump(uint32_t vector_addr,
   __set_MSP(stack_ptr);
   SCB->VTOR = vector_addr;
 
-  __enable_irq();
+  /* IRQ stays disabled here. The target image's startup code will
+   * re-enable interrupts once its vector table and handlers are ready.
+   */
 }
 /* register system operations */
 const port_system_ops_t *port_system_stm32_get_ops(void) {

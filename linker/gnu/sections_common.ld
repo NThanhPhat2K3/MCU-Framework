@@ -23,6 +23,7 @@
 ENTRY(Reset_Handler)
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
+BOOT_IMAGE_HEADER_OFFSET = 0x200;
 
 SECTIONS
 {
@@ -30,6 +31,13 @@ SECTIONS
   {
     . = ALIGN(4);
     KEEP(*(.isr_vector))
+    . = ALIGN(4);
+  } > FLASH
+
+  .image_header ORIGIN(FLASH) + BOOT_IMAGE_HEADER_OFFSET :
+  {
+    . = ALIGN(4);
+    KEEP(*(.image_header))
     . = ALIGN(4);
   } > FLASH
 
@@ -151,4 +159,6 @@ SECTIONS
 
   ASSERT((LOADADDR(.data) + SIZEOF(.data)) <= (ORIGIN(FLASH) + LENGTH(FLASH)), "FLASH overflow: image does not fit in FLASH region")
   ASSERT((ADDR(._user_heap_stack) + SIZEOF(._user_heap_stack)) <= (ORIGIN(RAM) + LENGTH(RAM)), "RAM overflow: data/bss/heap/stack reserve do not fit in RAM region")
+  ASSERT(SIZEOF(.isr_vector) <= BOOT_IMAGE_HEADER_OFFSET, "Vector table overlaps image header area")
+  ASSERT(SIZEOF(.image_header) == 64, "Unexpected image header size")
 }

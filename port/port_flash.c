@@ -54,3 +54,23 @@ boot_status_t port_flash_write(uint32_t addr, const uint8_t *data,
 
   return ops->write(addr, data, len);
 }
+
+uint32_t port_flash_get_last_error_detail(void) {
+  const port_flash_ops_t *ops = port_flash_get_ops();
+
+  if ((ops == NULL) || (ops->get_last_error_detail == NULL)) {
+    return 0u;
+  }
+
+  return ops->get_last_error_detail();
+}
+
+uint32_t port_flash_get_last_error_addr(void) {
+  const port_flash_ops_t *ops = port_flash_get_ops();
+
+  if ((ops == NULL) || (ops->get_last_error_addr == NULL)) {
+    return 0u;
+  }
+
+  return ops->get_last_error_addr();
+}

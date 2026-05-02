@@ -8,7 +8,7 @@ Host-side tools for UART firmware update and serial monitoring.
 |---|---|
 | `flasher.py` | PyQt5 desktop flasher and serial monitor |
 | `update_client.py` | Shared UART update logic used by the flasher |
-| `mcu/stm32f1/targets/stm32f103/tools/send_image.py` | Simple CLI wrapper around `update_client.py` |
+| `mcu/stm32f1/targets/stm32f103/tools/send_image.py` | Simple CLI wrapper around `update_client.py` with info query support |
 
 ## Install
 
@@ -34,6 +34,14 @@ python3 mcu/stm32f1/targets/stm32f103/tools/send_image.py \
   --app-bin out/stm32f103/app/app.bin
 ```
 
+Info-only example:
+
+```bash
+python3 mcu/stm32f1/targets/stm32f103/tools/send_image.py \
+  --port /dev/ttyUSB0 \
+  --info-only
+```
+
 ## Features
 
 - serial port scan
@@ -42,6 +50,7 @@ python3 mcu/stm32f1/targets/stm32f103/tools/send_image.py \
 - `.bin` file picker
 - flash app over UART
 - erase app region
+- query current app header/info from Programmer
 - serial monitor tab
 - optional `CRLF` append for monitor send
 - live log and progress bar

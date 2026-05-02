@@ -79,6 +79,17 @@ void startup_run(void)
     startup_zero_bss();
     SystemInit();
     startup_run_constructors();
+
+    /*
+     * Images entered via BootManager may inherit PRIMASK=1 because the jump
+     * handoff intentionally keeps IRQs disabled until the target image is
+     * fully initialized. Re-enable them here, after VTOR/data/bss/SystemInit
+     * are ready and right before handing control to main().
+     */
+#if defined(STM32F103xB) || defined(STM32F411xE)
+    __enable_irq();
+#endif
+
     (void)main();
 
     while (1)

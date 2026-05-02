@@ -23,6 +23,7 @@
 #define BOARD_UART_BAUDRATE_TEXT "115200"
 #define BOARD_UART_LABEL "USART1"
 #define BOARD_SYSCLK_HZ 8000000u
+#define BOARD_SYSCLK_HZ_TEXT "8000000"
 
 static inline void board_system_clock_init(void) {
   LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);

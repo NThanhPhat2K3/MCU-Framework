@@ -45,7 +45,7 @@ int main(void) {
   app_print_banner();
 
   for (;;) {
-    if ((port_system_get_tick() - last_tick) >= 100u) {
+    if ((port_system_get_tick() - last_tick) >= 1000u) {
       board_led_toggle();
       last_tick = port_system_get_tick();
     }

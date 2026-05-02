@@ -138,20 +138,34 @@ python3 mcu/stm32f1/targets/stm32f103/tools/send_image.py --help
 1. `README.md`
 2. `ARCHITECTURE.md`
 3. `BOOT_FLOW.md`
-4. `PORTING.md`
-5. `mcu/stm32f1/targets/stm32f103/README.md`
-6. `mcu/stm32f4/targets/stm32f411ce/README.md`
+4. `IMAGE_FORMAT.md`
+5. `REVIEW_HANDOFF.md`
+6. `PORTING.md`
+7. `mcu/stm32f1/targets/stm32f103/README.md`
+8. `mcu/stm32f4/targets/stm32f411ce/README.md`
 
 ## Known Limits
 
 This is still a study and bring-up framework, not a finished production
 bootloader.
 
-Not implemented yet:
+Already implemented:
 
-- image header format
-- CRC or signature checking
+- image header implementation
+- CRC32 image validation
+- serial host flasher / CLI update path
+- boot fallback to `Programmer`
+
+Still not implemented:
+
 - rollback support
-- power-fail protection
-- stronger update validation
+- power-fail-safe metadata commit
+- signature/authentication
+- dual-slot A/B update
 - separate BSP layer
+
+Current practical caveats:
+
+- image `PENDING -> VALID` promotion is intentionally disabled for now
+- STM32 internal flash metadata updates need a more robust design if state
+  commits are required later

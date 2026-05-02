@@ -182,7 +182,9 @@ COMMON_LDFLAGS := \
 # These groups exist only to make the image lists easier to read.
 #
 BOOT_COMMON_SRCS := \
-	$(PROJECT_ROOT)/bootloader/common/boot_shared.c
+	$(PROJECT_ROOT)/bootloader/common/boot_shared.c \
+	$(PROJECT_ROOT)/bootloader/common/boot_image.c \
+	$(PROJECT_ROOT)/bootloader/common/boot_image_header.c
 
 RUNTIME_PORT_SRCS := \
 	$(PROJECT_ROOT)/port/port_system.c \
@@ -211,6 +213,8 @@ BOOTMANAGER_SRCS := \
 	$(PROJECT_ROOT)/bootloader/common/boot_jump.c \
 	$(BOOT_COMMON_SRCS) \
 	$(STM32_BACKEND_SRCS) \
+	$(PORT_FLASH_BACKEND) \
+	$(PROJECT_ROOT)/port/port_flash.c \
 	$(RUNTIME_PORT_SRCS) \
 	$(STARTUP_SRCS)
 
@@ -428,18 +432,21 @@ bootmanager: IMAGE := bootmanager
 bootmanager: IMAGE_SRCS := $(BOOTMANAGER_SRCS)
 bootmanager: IMAGE_LD := $(BOOTMANAGER_LD)
 bootmanager: IMAGE_DEFINES := -DIMAGE_BOOTMANAGER
+bootmanager: IMAGE_ADDR := $(BOOTMANAGER_ADDR)
 bootmanager: check-config bootmanager-image
 
 programmer: IMAGE := programmer
 programmer: IMAGE_SRCS := $(PROGRAMMER_SRCS)
 programmer: IMAGE_LD := $(PROGRAMMER_LD)
 programmer: IMAGE_DEFINES := -DIMAGE_PROGRAMMER
+programmer: IMAGE_ADDR := $(PROGRAMMER_ADDR)
 programmer: check-config programmer-image
 
 app: IMAGE := app
 app: IMAGE_SRCS := $(APP_SRCS)
 app: IMAGE_LD := $(APP_LD)
 app: IMAGE_DEFINES := -DIMAGE_APP
+app: IMAGE_ADDR := $(APP_ADDR)
 app: check-config app-image
 
 #
@@ -500,6 +507,7 @@ bootmanager-image programmer-image app-image:
 		IMAGE_SRCS='$(IMAGE_SRCS)' \
 		IMAGE_LD='$(IMAGE_LD)' \
 		IMAGE_DEFINES='$(IMAGE_DEFINES)' \
+		IMAGE_ADDR='$(IMAGE_ADDR)' \
 		image-internal
 
 image-internal:
@@ -509,6 +517,7 @@ image-internal:
 		IMAGE_SRCS='$(IMAGE_SRCS)' \
 		IMAGE_LD='$(IMAGE_LD)' \
 		IMAGE_DEFINES='$(IMAGE_DEFINES)' \
+		IMAGE_ADDR='$(IMAGE_ADDR)' \
 		IMAGE_OUT=$(OUT_ROOT)/$(TARGET)/$(IMAGE) \
 		image-link
 
@@ -553,9 +562,10 @@ $(IMAGE_OUT)/$(IMAGE).elf: $(IMAGE_OBJS)
 
 $(IMAGE_OUT)/$(IMAGE).bin: $(IMAGE_OUT)/$(IMAGE).elf
 	$(OBJCOPY) -O binary $< $@
+	python3 $(PROJECT_ROOT)/tools/patch_image.py --bin $@
 
-$(IMAGE_OUT)/$(IMAGE).hex: $(IMAGE_OUT)/$(IMAGE).elf
-	$(OBJCOPY) -O ihex $< $@
+$(IMAGE_OUT)/$(IMAGE).hex: $(IMAGE_OUT)/$(IMAGE).bin
+	python3 $(PROJECT_ROOT)/tools/patch_image.py --bin $< --hex $@ --base-addr $(IMAGE_ADDR)
 
 $(IMAGE_OUT)/$(IMAGE).lst: $(IMAGE_OUT)/$(IMAGE).elf
 	$(OBJDUMP) -h -S $< > $@
